@@ -1,0 +1,25 @@
+{
+  "mongodb": {
+    "connectionString": "mongodb://localhost",
+    "database": "FindFM"
+  },
+
+  "listening": {
+    "address": "127.0.0.1",
+    "port": 8080,
+    "basePath": "/"
+  },
+
+  "disableErrorTraces": false,
+
+  "consolePrompt": "#FindFMServer>",
+
+  "smtp": {
+    "timeout": 3000,
+    "host": "mail.gmail.com",
+    "port": 587,
+    "email": "tutan.cat@gmail.com",
+    "displayName": "tutan.cat@gmail.com",
+    "password": ""
+  }
+}
