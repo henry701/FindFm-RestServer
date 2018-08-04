@@ -45,6 +45,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\sub_modules\FindFm-Models\Models.csproj" />
+    <ProjectReference Include="..\sub_modules\FmShell\FmShell\FmShell.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="config.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
