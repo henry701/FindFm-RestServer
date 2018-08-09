@@ -12,6 +12,6 @@
         /// <summary>
         /// The password for the <see cref="Models.User"/> account
         /// </summary>
-        public string Senha { get; set; }
+        public string Password { get; set; }
     }
 }

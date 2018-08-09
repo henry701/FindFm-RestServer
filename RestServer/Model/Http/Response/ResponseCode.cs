@@ -49,7 +49,7 @@
         /// </summary>
         RequiresUnauthentication = 9,
         /// <summary>
-        /// A premium account is required for this operation to take place.
+        /// A premium level higher than the current level is required for this operation to take place.
         /// </summary>
         RequiresPremium = 10,
     }

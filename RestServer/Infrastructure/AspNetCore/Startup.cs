@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -62,6 +63,7 @@ namespace RestServer.Infrastructure.AspNetCore
                 paramsValidation.IssuerSigningKey = signingConfigurations.Key;
                 paramsValidation.ValidAudience = tokenConfigurations.Audience;
                 paramsValidation.ValidIssuer = tokenConfigurations.Issuer;
+                paramsValidation.RequireExpirationTime = true;
 
                 // Valida a assinatura de um token recebido
                 paramsValidation.ValidateIssuerSigningKey = true;
@@ -75,20 +77,21 @@ namespace RestServer.Infrastructure.AspNetCore
                 paramsValidation.ClockSkew = TimeSpan.FromSeconds(5);
             });
 
+            var bearerPolicy = new AuthorizationPolicyBuilder()
+                        .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+                        .RequireAuthenticatedUser()
+                        .Build();
+
             services.AddMvcCore(options =>
             {
                 options.ReturnHttpNotAcceptable = true;
                 options.RespectBrowserAcceptHeader = true;
+                options.Filters.Add(new CustomAuthorizeFilter(bearerPolicy));
             })
             .AddAuthorization(auth =>
             {
-                auth.AddPolicy("Bearer", new AuthorizationPolicyBuilder()
-                    .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
-                    .RequireAuthenticatedUser().Build());
-            })
-            .AddFormatterMappings(options =>
-            {
-                
+                auth.AddPolicy("Bearer", bearerPolicy);
+                auth.DefaultPolicy = bearerPolicy;
             })
             .AddJsonFormatters(options =>
             {
@@ -99,6 +102,10 @@ namespace RestServer.Infrastructure.AspNetCore
                 options.NullValueHandling = NullValueHandling.Ignore;
             })
             .AddXmlSerializerFormatters()
+            .AddFormatterMappings(options =>
+            {
+                
+            })
             .AddCors(options =>
             {
                 // Allow all

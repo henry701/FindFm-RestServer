@@ -4,6 +4,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Security.Claims;
 using System.Security.Principal;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -40,13 +41,13 @@ namespace RestServer.Controllers
 
         [HttpPost]
         [AllowAnonymous] // No authorization required for Login Request, obviously
-        public dynamic Post([FromBody] LoginRequest requestBody)
+        public async Task<dynamic> Post([FromBody] LoginRequest requestBody)
         {
             var collection = MongoWrapper.Database.GetCollection<User>(typeof(User).Name);
 
             var filterBuilder = new FilterDefinitionBuilder<User>();
             var filter = filterBuilder.Eq((User u) => u.Email, requestBody.Email);
-            var user = collection.Find(filter).SingleOrDefault();
+            var user = (await collection.FindAsync(filter)).SingleOrDefault();
 
             var responseBody = new ResponseBody();
 
@@ -59,7 +60,7 @@ namespace RestServer.Controllers
                 return responseBody;
             }
 
-            bool passwordMatches = Encryption.Compare(requestBody.Senha, user.Senha);
+            bool passwordMatches = await Task.Run(() => Encryption.Compare(requestBody.Password, user.Password));
 
             if (!passwordMatches)
             {
@@ -85,7 +86,8 @@ namespace RestServer.Controllers
                 new[]
                 {
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
-                    new Claim(JwtRegisteredClaimNames.UniqueName, user._id.ToString())
+                    new Claim(JwtRegisteredClaimNames.UniqueName, user._id.ToString()),
+                    new Claim(JwtRegisteredClaimNames.Email, user.Email),
                 }
             );
 
@@ -108,7 +110,8 @@ namespace RestServer.Controllers
             responseBody.Message = "Login efetuado com sucesso!";
             responseBody.Code = ResponseCode.GenericSuccess;
             responseBody.Success = true;
-            responseBody.Data = new {
+            responseBody.Data = new
+            {
                 tokenData = new
                 {
                     created = dataCriacao,

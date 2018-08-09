@@ -1,4 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using RestServer.Model.Config;
@@ -23,34 +26,33 @@ namespace RestServer.Controllers
         }
 
         [HttpGet]
-        public IEnumerable<string> Get()
+        public async Task<IEnumerable<string>> Get()
         {
-            Logger.LogTrace("GET TRIGGER");
-            return new[] { "value1", "value2" };
+            return await Task.Run(() => new[] { "value1", "value2" });
         }
 
         [HttpGet("{id}")]
-        public string Get(int id)
+        public async Task<string> Get(int id)
         {
-            return "value";
+            return await Task.Run(() => $"GET value: {id}");
         }
 
         [HttpPost]
-        public void Post([FromBody]string value)
+        public async Task<string> Post([FromBody]string value)
         {
-
+            return await Task.Run(() => $"POST value: {value}");
         }
 
         [HttpPut("{id}")]
-        public void Put(int id, [FromBody]string value)
+        public async void Put(int id, [FromBody]string value)
         {
-
+            await Task.Run(() => Thread.Sleep(1000));
         }
 
         [HttpDelete("{id}")]
-        public void Delete(int id)
+        public async void Delete(int id)
         {
-
+            await Task.Run(() => Thread.Sleep(1000));
         }
 
     }

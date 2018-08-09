@@ -20,7 +20,12 @@ namespace RestServer.Shell
 
         public void Stop(FmShellArguments args)
         {
-            new Task( () => args.Shell.Stop() ).Start();
+            Task.Run( () => args.Shell.Stop() );
+        }
+
+        public string ShowUri(FmShellArguments args)
+        {
+            return Context.HostUri;
         }
 
         public string Reload(FmShellArguments args)
