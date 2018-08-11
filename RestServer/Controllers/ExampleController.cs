@@ -9,7 +9,7 @@ using RestServer.Util;
 
 namespace RestServer.Controllers
 {
-    [Route("/")]
+    [Route("/example")]
     [Controller]
     internal sealed class ExampleController : ControllerBase
     {
@@ -25,6 +25,7 @@ namespace RestServer.Controllers
             ServerInfo = serverInfo;
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IEnumerable<string>> Get()
         {
@@ -54,6 +55,5 @@ namespace RestServer.Controllers
         {
             await Task.Run(() => Thread.Sleep(1000));
         }
-
     }
 }
