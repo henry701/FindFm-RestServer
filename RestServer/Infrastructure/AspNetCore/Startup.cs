@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.Mvc.Controllers;
@@ -157,6 +158,11 @@ namespace RestServer.Infrastructure.AspNetCore
                     }
                     catch(Exception exception)
                     {
+                        // TODO: Exception Middleware clauses
+                        if(false)
+                        {
+                            return;
+                        }
                         Logger.LogError(exception, "Unexpected exception occured!");
                         var errorBody = new ResponseBody()
                         {
@@ -164,6 +170,8 @@ namespace RestServer.Infrastructure.AspNetCore
                             Code = ResponseCode.GenericFailure,
                             Message = "Internal Server Error",
                         };
+                        context.Response.StatusCode = 500;
+                        context.Response = new ObjectResult(errorBody);
                     }
                 });
             }
