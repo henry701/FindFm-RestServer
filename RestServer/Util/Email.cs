@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using Models;
 using RestServer.Model.Config;
 
@@ -10,11 +11,11 @@ namespace RestServer.Util
 {
     internal static class EmailUtils
     {
-        public static void SendConfirmationEmail(MongoWrapper mongoWrapper, SmtpConfiguration smtpConfig, ServerInfo context, User user)
+        public static async Task SendConfirmationEmail(MongoWrapper mongoWrapper, SmtpConfiguration smtpConfig, ServerInfo context, User user)
         {
-            var collectionConfirmações = mongoWrapper.Database.GetCollection<Confirmation>(typeof(Confirmation).Name);
+            var confirmationCollection = mongoWrapper.Database.GetCollection<Confirmation>(typeof(Confirmation).Name);
 
-            string token = GenerateRandomToken();
+            var tokenTask = GenerateRandomToken();
 
             SmtpClient client = new SmtpClient
             {
@@ -24,8 +25,10 @@ namespace RestServer.Util
                 Timeout = smtpConfig.Timeout,
                 DeliveryMethod = SmtpDeliveryMethod.Network,
                 UseDefaultCredentials = false,
-                Credentials = new NetworkCredential(smtpConfig.Email, smtpConfig.Password)
+                Credentials = new NetworkCredential(smtpConfig.Email, smtpConfig.Password),
             };
+
+            string token = await tokenTask;
 
             Confirmation confirmation = new Confirmation()
             {
@@ -33,7 +36,7 @@ namespace RestServer.Util
                 Token = token
             };
 
-            collectionConfirmações.InsertOne(confirmation);
+            var insertConfirmationTask = confirmationCollection.InsertOneAsync(confirmation);
 
             MailMessage mailMessage = new MailMessage()
             {
@@ -45,18 +48,20 @@ namespace RestServer.Util
                 Subject = "[FindFM] Confirmação de E-mail",
                 Priority = MailPriority.Normal,
                 SubjectEncoding = Encoding.UTF8,
+                // TODO better body builder
                 Body = "<a href='" + context.HostUri.TrimEnd('/') + "/account/confirm/" + token + "'>Clique aqui para confirmar seu cadastro</a>"
             };
 
             mailMessage.To.Add(user.Email);
 
-            client.Send(mailMessage);
+            await insertConfirmationTask;
+            await client.SendMailAsync(mailMessage);
         }
 
-        private static string GenerateRandomToken()
+        private static async Task<string> GenerateRandomToken()
         {
             byte[] tokenBytes = new byte[512];
-            new RNGCryptoServiceProvider().GetBytes(tokenBytes);
+            await Task.Run(() => new RNGCryptoServiceProvider().GetBytes(tokenBytes));
             string token = Convert.ToBase64String(tokenBytes);
             return token;
         }

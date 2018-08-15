@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Mvc.Authorization;
@@ -17,8 +19,10 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using NLog;
+using RestServer.Exceptions;
 using RestServer.Model.Config;
 using RestServer.Model.Http.Response;
+using Util.Extensions;
 
 namespace RestServer.Infrastructure.AspNetCore
 {
@@ -144,6 +148,11 @@ namespace RestServer.Infrastructure.AspNetCore
                 await next.Invoke();
             });
 
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.All
+            });
+
             if (HostingEnvironment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -158,20 +167,31 @@ namespace RestServer.Infrastructure.AspNetCore
                     }
                     catch(Exception exception)
                     {
-                        // TODO: Exception Middleware clauses
-                        if(false)
+                        ResponseBody errorBody;
+                        // TODO: Exception Middleware clauses by class ^-^
+                        if(exception is ApplicationException appException)
                         {
-                            return;
+                            if(appException is ValidationException validationException)
+                            {
+                                context.Response.StatusCode = 422;
+                                errorBody = new ResponseBody()
+                                {
+                                    Success = false,
+                                    Code = ResponseCode.ValidationFailure,
+                                    Message = validationException.Message,
+                                };
+                                return;
+                            }
                         }
                         Logger.LogError(exception, "Unexpected exception occured!");
-                        var errorBody = new ResponseBody()
+                        errorBody = new ResponseBody()
                         {
                             Success = false,
                             Code = ResponseCode.GenericFailure,
                             Message = "Internal Server Error",
                         };
-                        context.Response.StatusCode = 500;
-                        context.Response = new ObjectResult(errorBody);
+                        context.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
+                        await context.WriteResultAsync(new ObjectResult(errorBody));
                     }
                 });
             }

@@ -22,20 +22,22 @@ using RestServer.Util;
 
 namespace RestServer.Controllers
 {
-    [Route("/register")]
+    [Route("/register/musico")]
     [Controller]
     internal sealed class RegisterMusicianController : ControllerBase
     {
         private readonly ILogger<RegisterMusicianController> Logger;
         private readonly MongoWrapper MongoWrapper;
         private readonly ServerInfo ServerInfo;
+        private readonly SmtpConfiguration SmtpConfiguration;
 
-        public RegisterMusicianController(MongoWrapper mongoWrapper, ServerInfo serverInfo, TokenConfigurations tokenConfigurations, SigningConfigurations signingConfigurations, ILogger<RegisterMusicianController> logger)
+        public RegisterMusicianController(MongoWrapper mongoWrapper, ServerInfo serverInfo, SmtpConfiguration smtpConfiguration, ILogger<RegisterMusicianController> logger)
         {
             Logger = logger;
             Logger.LogTrace($"{nameof(RegisterMusicianController)} Constructor Invoked");
             MongoWrapper = mongoWrapper;
             ServerInfo = serverInfo;
+            SmtpConfiguration = smtpConfiguration;
         }
 
         [HttpPost]
@@ -59,34 +61,35 @@ namespace RestServer.Controllers
                 return responseBody;
             }
 
-            // TODO foto, resize, testar o GridFs e tal
-            var fileId = ObjectId.GenerateNewId();
-            var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database, new GridFSBucketOptions {
-                
-            });
-            var photoTask = gridFsBucket.UploadFromBytesAsync(fileId, null, requestBody.Foto);
-
-            // TODO: Validation returning class
-            var musician = new Musician()
+            var photo = ImageUtils.FromBytes(requestBody.Foto);
+            photo = ImageUtils.GuaranteeMaxSize(photo, 1000);
+            using (var photoStream = ImageUtils.ToStream(photo))
             {
-                _id = ObjectId.GenerateNewId(),
-                Born = ValidationUtils.ValidateBornDate(requestBody.Nascimento),
-                Email = ValidationUtils.ValidateEmail(requestBody.Email),
-                IsConfirmed = false,
-                LastIp = null, // TODO: Get IP in ASP.Net Core?
-                LastPosition = null,
-                Name = ValidationUtils.ValidateName(requestBody.NomeCompleto),
-                Password = Encryption.Encrypt(ValidationUtils.ValidatePassword(requestBody.Senha)),
-                PremiumLevel = PremiumLevel.None,
-                Instruments = null, // TODO: Bind instrumentos
-                ImageReference = fileId,
-            };
+                var fileId = ObjectId.GenerateNewId();
+                var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database);
+                var photoTask = gridFsBucket.UploadFromStreamAsync(fileId, null, photoStream);
 
-            var insertTask = userCollection.InsertOneAsync(musician);
+                var musician = new Musician()
+                {
+                    _id = ObjectId.GenerateNewId(),
+                    Born = ValidationUtils.ValidateBornDate(requestBody.Nascimento),
+                    Email = ValidationUtils.ValidateEmail(requestBody.Email),
+                    IsConfirmed = false,
+                    LastIp = HttpContext.Connection.RemoteIpAddress,
+                    LastPosition = null,
+                    Name = ValidationUtils.ValidateName(requestBody.NomeCompleto),
+                    Password = Encryption.Encrypt(ValidationUtils.ValidatePassword(requestBody.Senha)),
+                    PremiumLevel = PremiumLevel.None,
+                    Instruments = null, // TODO: Bind instrumentos
+                    ImageReference = fileId,
+                };
 
-            Task.WaitAll(photoTask, insertTask);
+                var insertTask = userCollection.InsertOneAsync(musician);
 
-            // TODO: Send confirmation email async
+                var sendEmailTask = EmailUtils.SendConfirmationEmail(MongoWrapper, SmtpConfiguration, ServerInfo, musician);
+
+                Task.WaitAll(photoTask, insertTask, sendEmailTask);
+            }
 
             responseBody.Message = "Registro efetuado com sucesso! Confirme seu e-mail para continuar.";
             responseBody.Code = ResponseCode.GenericSuccess;
