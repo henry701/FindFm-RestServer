@@ -22,7 +22,7 @@ using RestServer.Util;
 
 namespace RestServer.Controllers
 {
-    [Route("/register/musico")]
+    [Route("/register/musician")]
     [Controller]
     internal sealed class RegisterMusicianController : ControllerBase
     {
@@ -85,6 +85,8 @@ namespace RestServer.Controllers
                 };
 
                 var insertTask = userCollection.InsertOneAsync(musician);
+
+                // TODO: Limpar foto se insert do Mongo falhar, e vice-versa
 
                 var sendEmailTask = EmailUtils.SendConfirmationEmail(MongoWrapper, SmtpConfiguration, ServerInfo, musician);
 

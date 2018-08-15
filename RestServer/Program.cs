@@ -174,7 +174,7 @@ namespace RestServer
                     // We act as a cache for the ServerConfiguration object, invoking this func on every request for it.
                     services.Add(new ServiceDescriptor(typeof(ServerConfiguration),
                         provider => serverConfig,
-                        ServiceLifetime.Transient)
+                        ServiceLifetime.Scoped)
                     );
                 })
                 .UseStartup<RestServerStartup>()

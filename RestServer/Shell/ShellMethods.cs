@@ -4,6 +4,7 @@ using RestServer.Util;
 using RestServer.Infrastructure.Shell;
 using RestServer.Infrastructure.AspNetCore;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace RestServer.Shell
 {
@@ -37,6 +38,11 @@ namespace RestServer.Shell
         public void RunFullGC(FmShellArguments args)
         {
             System.GC.Collect(System.Int32.MaxValue, System.GCCollectionMode.Forced, false);
+        }
+
+        public string Help(FmShellArguments args)
+        {
+            return $"Commands: " + typeof(ShellMethods).GetMethods().Where(mi => mi.IsPublic && mi.GetParameters().Length > 0 && mi.GetParameters().First().ParameterType == typeof(FmShellArguments)).Select(mi => mi.Name).Aggregate("", (one, acc) => one + "\n" + acc);
         }
     }
 }

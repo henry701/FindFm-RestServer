@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using RestServer.Exceptions;
 using SkiaSharp;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -7,15 +8,25 @@ namespace RestServer.Util
 {
     internal class ImageUtils
     {
-        public static SKBitmap GuaranteeMaxSize(SKBitmap bitmap, int size)
+        public static void ValidateMinSize(SKBitmap bitmap, int size)
         {
-            (int width, int height) = GetWidthAndHeightForSize(bitmap, size);
-            var resized = bitmap.Resize(new SKImageInfo(width, height), SKBitmapResizeMethod.Lanczos3);
-            bitmap.Dispose();
-            return resized;
+            if(bitmap.Width < size || bitmap.Height < size)
+            {
+                throw new ValidationException($"O tamanho da foto deve ser maior do que {size}!");
+            }
         }
 
-        private static (int, int) GetWidthAndHeightForSize(SKBitmap bitmap, int size)
+        public static SKBitmap GuaranteeMaxSize(SKBitmap bitmap, int size)
+        {
+            using (bitmap)
+            {
+                (int width, int height) = GetWidthAndHeightForMaxSize(bitmap, size);
+                var resized = bitmap.Resize(new SKImageInfo(width, height), SKBitmapResizeMethod.Lanczos3);
+                return resized;
+            }
+        }
+
+        private static (int, int) GetWidthAndHeightForMaxSize(SKBitmap bitmap, int size)
         {
             int width, height;
             if (bitmap.Width > bitmap.Height)

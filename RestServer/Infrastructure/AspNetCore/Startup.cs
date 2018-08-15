@@ -153,6 +153,30 @@ namespace RestServer.Infrastructure.AspNetCore
                 ForwardedHeaders = ForwardedHeaders.All
             });
 
+            app.Use(async (context, next) =>
+            {
+                // TODO: Exception Middleware clauses by class ^-^
+                try
+                {
+                    await next.Invoke();
+                }
+                catch (ApplicationException exception)
+                {
+                    ResponseBody errorBody;
+                    if (exception is ValidationException validationException)
+                    {
+                        context.Response.StatusCode = 422;
+                        errorBody = new ResponseBody()
+                        {
+                            Success = false,
+                            Code = ResponseCode.ValidationFailure,
+                            Message = validationException.Message,
+                        };
+                        await context.WriteResultAsync(new ObjectResult(errorBody));
+                    }
+                }
+            });
+
             if (HostingEnvironment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -168,21 +192,6 @@ namespace RestServer.Infrastructure.AspNetCore
                     catch(Exception exception)
                     {
                         ResponseBody errorBody;
-                        // TODO: Exception Middleware clauses by class ^-^
-                        if(exception is ApplicationException appException)
-                        {
-                            if(appException is ValidationException validationException)
-                            {
-                                context.Response.StatusCode = 422;
-                                errorBody = new ResponseBody()
-                                {
-                                    Success = false,
-                                    Code = ResponseCode.ValidationFailure,
-                                    Message = validationException.Message,
-                                };
-                                return;
-                            }
-                        }
                         Logger.LogError(exception, "Unexpected exception occured!");
                         errorBody = new ResponseBody()
                         {
