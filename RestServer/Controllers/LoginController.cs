@@ -16,6 +16,7 @@ using RestServer.Infrastructure.AspNetCore;
 using RestServer.Model.Config;
 using RestServer.Model.Http.Response;
 using RestServer.Util;
+using RestServer.Util.Extensions;
 
 namespace RestServer.Controllers
 {
@@ -43,6 +44,8 @@ namespace RestServer.Controllers
         [AllowAnonymous] // No authorization required for Login Request, obviously
         public async Task<dynamic> Post([FromBody] LoginRequest requestBody)
         {
+            this.EnsureModelValidation();
+
             var collection = MongoWrapper.Database.GetCollection<User>(typeof(User).Name);
 
             var filterBuilder = new FilterDefinitionBuilder<User>();

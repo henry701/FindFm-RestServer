@@ -145,6 +145,7 @@ namespace RestServer.Infrastructure.AspNetCore
             {
                 var requestId = Guid.NewGuid().ToString() + Guid.NewGuid().ToString();
                 MappedDiagnosticsLogicalContext.Set("RequestId", requestId);
+                context.TraceIdentifier = requestId;
                 await next.Invoke();
             });
 
@@ -153,31 +154,7 @@ namespace RestServer.Infrastructure.AspNetCore
                 ForwardedHeaders = ForwardedHeaders.All
             });
 
-            app.Use(async (context, next) =>
-            {
-                // TODO: Exception Middleware clauses by class ^-^
-                try
-                {
-                    await next.Invoke();
-                }
-                catch (ApplicationException exception)
-                {
-                    ResponseBody errorBody;
-                    if (exception is ValidationException validationException)
-                    {
-                        context.Response.StatusCode = 422;
-                        errorBody = new ResponseBody()
-                        {
-                            Success = false,
-                            Code = ResponseCode.ValidationFailure,
-                            Message = validationException.Message,
-                        };
-                        await context.WriteResultAsync(new ObjectResult(errorBody));
-                    }
-                }
-            });
-
-            if (HostingEnvironment.IsDevelopment())
+            if (HostingEnvironment.IsDevelopment() && !ServerConfiguration.DisableErrorTraces)
             {
                 app.UseDeveloperExceptionPage();
             }
@@ -197,13 +174,41 @@ namespace RestServer.Infrastructure.AspNetCore
                         {
                             Success = false,
                             Code = ResponseCode.GenericFailure,
-                            Message = "Internal Server Error",
+                            Message = "Erro interno. Por favor, contate o suporte e passe o seguinte: " + context.TraceIdentifier,
+                            Data = context.TraceIdentifier
                         };
                         context.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
                         await context.WriteResultAsync(new ObjectResult(errorBody));
                     }
                 });
             }
+
+            app.Use(async (context, next) =>
+            {
+                
+                try
+                {
+                    await next.Invoke();
+                }
+                // TODO: Exception Middleware clauses by class ^-^
+                catch (ApplicationException exception)
+                {
+                    ResponseBody errorBody;
+                    if (exception is ValidationException validationException)
+                    {
+                        context.Response.StatusCode = 422;
+                        errorBody = new ResponseBody()
+                        {
+                            Success = false,
+                            Code = ResponseCode.ValidationFailure,
+                            Message = validationException.Message,
+                        };
+                        await context.WriteResultAsync(new ObjectResult(errorBody));
+                        return;
+                    }
+                    throw;
+                }
+            });
 
             Logger.LogDebug("Adding 'UseMvc' middleware to pipeline");
             app.UseMvc();

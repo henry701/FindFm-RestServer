@@ -169,13 +169,12 @@ namespace RestServer
                 .ConfigureServices(services =>
                 {
                     // Configure dependency injection (services) for the Startup class here
-                    services.Add(new ServiceDescriptor(typeof(MongoWrapper), mongoWrapper));
-                    services.Add(new ServiceDescriptor(typeof(ServerInfo), serverInfo));
+                    services.AddSingleton(mongoWrapper);
+                    services.AddSingleton(serverInfo);
                     // We act as a cache for the ServerConfiguration object, invoking this func on every request for it.
-                    services.Add(new ServiceDescriptor(typeof(ServerConfiguration),
-                        provider => serverConfig,
-                        ServiceLifetime.Scoped)
-                    );
+                    services.AddScoped(provider => serverConfig);
+                    services.AddScoped(provider => provider.GetRequiredService<ServerConfiguration>().Smtp);
+                    // services.AddScoped(provider => provider.GetRequiredService<ServerConfiguration>().XX);
                 })
                 .UseStartup<RestServerStartup>()
                 .Build();
