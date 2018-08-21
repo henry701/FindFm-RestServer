@@ -59,7 +59,7 @@ namespace RestServer.Controllers
                 responseBody.Code = ResponseCode.NotFound;
                 responseBody.Success = false;
                 responseBody.Message = "Usuário não encontrado!";
-                Response.StatusCode = (int) HttpStatusCode.Unauthorized;
+                Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                 return responseBody;
             }
 
@@ -70,45 +70,22 @@ namespace RestServer.Controllers
                 responseBody.Message = "Senha incorreta!";
                 responseBody.Code = ResponseCode.IncorrectPassword;
                 responseBody.Success = false;
-                Response.StatusCode = (int) HttpStatusCode.Unauthorized;
+                Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                 return responseBody;
             }
 
+            /*
             if (!user.IsConfirmed)
             {
                 responseBody.Message = "Seu e-mail não foi confirmado!";
                 responseBody.Code = ResponseCode.UnconfirmedEmail;
                 responseBody.Success = false;
-                Response.StatusCode = (int) HttpStatusCode.Unauthorized;
+                Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                 return responseBody;
             }
+            */
 
-            ClaimsIdentity identity = new ClaimsIdentity
-            (
-                new GenericIdentity(user._id.ToString(), "Login"),
-                new[]
-                {
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
-                    new Claim(JwtRegisteredClaimNames.UniqueName, user._id.ToString()),
-                    new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                }
-            );
-
-            DateTime dataCriacao = DateTime.Now;
-            DateTime dataExpiracao = dataCriacao + TimeSpan.FromSeconds(TokenConfigurations.Seconds);
-
-            var handler = new JwtSecurityTokenHandler();
-            var securityToken = handler.CreateToken(new SecurityTokenDescriptor
-            {
-                Issuer = TokenConfigurations.Issuer,
-                Audience = TokenConfigurations.Audience,
-                SigningCredentials = SigningConfigurations.SigningCredentials,
-                Subject = identity,
-                NotBefore = dataCriacao,
-                Expires = dataExpiracao
-            });
-
-            var token = handler.WriteToken(securityToken);
+            var (creationDate, expiryDate, token) = AuthenticationUtils.GenerateJwtTokenForUser(user._id.ToString(), user.Email, TokenConfigurations, SigningConfigurations);
 
             responseBody.Message = "Login efetuado com sucesso!";
             responseBody.Code = ResponseCode.GenericSuccess;
@@ -117,12 +94,12 @@ namespace RestServer.Controllers
             {
                 tokenData = new
                 {
-                    created = dataCriacao,
-                    expiration = dataExpiracao,
+                    created = creationDate,
+                    expiration = expiryDate,
                     accessToken = token,
                 }
             };
-            Response.StatusCode = (int) HttpStatusCode.OK;
+            Response.StatusCode = (int)HttpStatusCode.OK;
             return responseBody;
         }
     }

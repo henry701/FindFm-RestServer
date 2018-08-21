@@ -34,14 +34,18 @@ namespace RestServer.Controllers
         private readonly MongoWrapper MongoWrapper;
         private readonly ServerInfo ServerInfo;
         private readonly SmtpConfiguration SmtpConfiguration;
+        private readonly TokenConfigurations TokenConfigurations;
+        private readonly SigningConfigurations SigningConfigurations;
 
-        public RegisterMusicianController(MongoWrapper mongoWrapper, ServerInfo serverInfo, SmtpConfiguration smtpConfiguration, ILogger<RegisterMusicianController> logger)
+        public RegisterMusicianController(MongoWrapper mongoWrapper, ServerInfo serverInfo, SmtpConfiguration smtpConfiguration, TokenConfigurations tokenConfigurations, SigningConfigurations signingConfigurations, ILogger<RegisterMusicianController> logger)
         {
             Logger = logger;
             Logger.LogTrace($"{nameof(RegisterMusicianController)} Constructor Invoked");
             MongoWrapper = mongoWrapper;
             ServerInfo = serverInfo;
             SmtpConfiguration = smtpConfiguration;
+            TokenConfigurations = tokenConfigurations;
+            SigningConfigurations = signingConfigurations;
         }
 
         [HttpPost]
@@ -54,11 +58,11 @@ namespace RestServer.Controllers
 
             var filterBuilder = new FilterDefinitionBuilder<User>();
             var filter = filterBuilder.Eq((User u) => u.Email, requestBody.Email);
-            var existingUser = (await userCollection.FindAsync(filter)).SingleOrDefault();
+            var existingUserCount = (await userCollection.CountDocumentsAsync(filter));
 
             var responseBody = new ResponseBody();
 
-            if (existingUser != null)
+            if (existingUserCount > 0)
             {
                 responseBody.Code = ResponseCode.AlreadyExists;
                 responseBody.Success = false;
@@ -95,13 +99,12 @@ namespace RestServer.Controllers
             {
                 var photo = ImageUtils.FromBytes(Array.ConvertAll(requestBody.Foto, (sb) => (byte)sb));
                 photo = ImageUtils.GuaranteeMaxSize(photo, 1000);
-                using (var photoStream = ImageUtils.ToStream(photo))
-                {
-                    var fileId = ObjectId.GenerateNewId();
-                    musician.ImageReference = fileId.ToString();
-                    var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database);
-                    photoTask = gridFsBucket.UploadFromStreamAsync(fileId, fileId.ToString(), photoStream);
-                }
+                var photoStream = ImageUtils.ToStream(photo);
+                var fileId = ObjectId.GenerateNewId();
+                musician.ImageReference = fileId.ToString();
+                var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database);
+                photoTask = gridFsBucket.UploadFromStreamAsync(fileId, fileId.ToString(), photoStream);
+                var streamCloseTask = photoTask.ContinueWith(tsk => photoStream.Close(), TaskContinuationOptions.ExecuteSynchronously);
             }
             else
             {
@@ -111,16 +114,40 @@ namespace RestServer.Controllers
 
             var insertTask = userCollection.InsertOneAsync(musician);
 
-            // TODO: Limpar foto se insert do Mongo falhar, e vice-versa
-            Task.WaitAll(insertTask, photoTask);
+            try
+            {
+                Task.WaitAll(insertTask, photoTask);
+            }
+            catch(Exception e)
+            {
+                Logger.LogError("Error while registering user", e);
+                if(insertTask.IsFaulted && !photoTask.IsFaulted)
+                {
+                    // TODO: Erase photo
+                }
+                else if(!insertTask.IsFaulted && photoTask.IsFaulted)
+                {
+                    // TODO: Erase from MongoDB
+                }
+            }
 
-            // Não esperamos o e-mail ser enviado, caso não tenha sido enviado vai ter um botão na home depois
+            // Não esperamos o e-mail ser enviado, apenas disparamos. Caso não tenha sido enviado vai ter um botão na home depois enchendo o saco pro usuário confirmar o e-mail dele.
             var sendEmailTask = EmailUtils.SendConfirmationEmail(MongoWrapper, SmtpConfiguration, ServerInfo, musician);
+
+            var (creationDate, expiryDate, token) = AuthenticationUtils.GenerateJwtTokenForUser(musician._id.ToString(), musician.Email, TokenConfigurations, SigningConfigurations);
 
             responseBody.Message = "Registro efetuado com sucesso. Não se esqueça de confirmar seu e-mail!";
             responseBody.Code = ResponseCode.GenericSuccess;
             responseBody.Success = true;
-            responseBody.Data = null;
+            responseBody.Data = new
+            {
+                tokenData = new
+                {
+                    created = creationDate,
+                    expiration = expiryDate,
+                    accessToken = token,
+                }
+            };
             Response.StatusCode = (int) HttpStatusCode.OK;
             return responseBody;
         }

@@ -48,7 +48,7 @@ namespace RestServer.Util
                 Subject = "[FindFM] Confirmação de E-mail",
                 Priority = MailPriority.Normal,
                 SubjectEncoding = Encoding.UTF8,
-                // TODO better body builder
+                // TODO a better body builder, maybe even a template, or view???
                 Body = "<a href='" + context.HostUri.TrimEnd('/') + "/account/confirm/" + token + "'>Clique aqui para confirmar seu cadastro</a>"
             };
 
