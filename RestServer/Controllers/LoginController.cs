@@ -99,7 +99,7 @@ namespace RestServer.Controllers
                     accessToken = token,
                 }
             };
-            Response.StatusCode = (int)HttpStatusCode.OK;
+            Response.StatusCode = (int) HttpStatusCode.OK;
             return responseBody;
         }
     }

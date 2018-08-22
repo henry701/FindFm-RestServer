@@ -1,4 +1,6 @@
-﻿namespace RestServer.Model.Http.Response
+﻿using Newtonsoft.Json;
+
+namespace RestServer.Model.Http.Response
 {
     /// <summary>
     /// Represents response codes for use in <see cref="ResponseBody"/>.

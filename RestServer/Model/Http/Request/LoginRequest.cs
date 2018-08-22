@@ -1,9 +1,12 @@
-﻿namespace RestServer.Http.Request
+﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
+
+namespace RestServer.Http.Request
 {
     /// <summary>
     /// Request model for REST Login Request
     /// </summary>
-    internal class LoginRequest
+    [BindRequired]
+    internal sealed class LoginRequest
     {
         /// <summary>
         /// The e-mail for the <see cref="Models.User"/> account

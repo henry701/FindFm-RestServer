@@ -6,7 +6,7 @@ using Models;
 namespace RestServer.Model.Http.Request
 {
     [BindRequired]
-    internal class RegisterMusicianRequest
+    internal sealed class RegisterMusicianRequest
     {
         public string NomeUsuario { get; set; }
         public string Telefone { get; set; }

@@ -71,6 +71,11 @@ namespace RestServer.Controllers
                 return responseBody;
             }
 
+            if(requestBody.Instrumentos == null)
+            {
+                requestBody.Instrumentos = new List<InstrumentRequest>();
+            }
+
             var musician = new Musician()
             {
                 _id = ObjectId.GenerateNewId(),
@@ -83,7 +88,7 @@ namespace RestServer.Controllers
                 Password = Encryption.Encrypt(ValidationUtils.ValidatePassword(requestBody.Senha)),
                 PremiumLevel = PremiumLevel.None,
                 ImageReference = null,
-                Instruments = requestBody.Instrumentos.Select(
+                Instruments = requestBody.Instrumentos.DefaultIfEmpty().Select(
                     instr =>
                         instr == null ? null : 
                         new Instrument()

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace RestServer.Model.Http.Request
 {
-    internal class InstrumentRequest
+    internal sealed class InstrumentRequest
     {
         public string Nome { get; set; }
         public int NivelHabilidade { get; set; }
