@@ -96,6 +96,7 @@ namespace RestServer.Controllers
                             SkillLevel = (SkillLevel) instr.NivelHabilidade,
                             Name = instr.Nome,
                         })
+                        .Where(instr => instr != null)
                         .ToList()
             };
 
@@ -103,12 +104,34 @@ namespace RestServer.Controllers
             if (requestBody.Foto != null)
             {
                 var photo = ImageUtils.FromBytes(Array.ConvertAll(requestBody.Foto, (sb) => (byte)sb));
+                if(photo == null)
+                {
+                    responseBody.Code = ResponseCode.InvalidImage;
+                    responseBody.Success = false;
+                    responseBody.Message = "A imagem enviada é inválida!";
+                    Response.StatusCode = (int) HttpStatusCode.BadRequest;
+                    return responseBody;
+                }
                 photo = ImageUtils.GuaranteeMaxSize(photo, 1000);
                 var photoStream = ImageUtils.ToStream(photo);
                 var fileId = ObjectId.GenerateNewId();
                 musician.ImageReference = fileId.ToString();
                 var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database);
-                photoTask = gridFsBucket.UploadFromStreamAsync(fileId, fileId.ToString(), photoStream);
+                photoTask = gridFsBucket.UploadFromStreamAsync(
+                    fileId, 
+                    fileId.ToString(), 
+                    photoStream,
+                    new GridFSUploadOptions()
+                    {
+                        Metadata = new BsonDocument
+                        (
+                            new Dictionary<String, Object>
+                            {
+                                ["content-type"] = "image/jpeg"
+                            }
+                        )
+                    }
+                );
                 var streamCloseTask = photoTask.ContinueWith(tsk => photoStream.Close(), TaskContinuationOptions.ExecuteSynchronously);
             }
             else
@@ -128,11 +151,11 @@ namespace RestServer.Controllers
                 Logger.LogError("Error while registering user", e);
                 if(insertTask.IsFaulted && !photoTask.IsFaulted)
                 {
-                    // TODO: Erase photo
+                    // TODO: Erase photo from MongoDB
                 }
                 else if(!insertTask.IsFaulted && photoTask.IsFaulted)
                 {
-                    // TODO: Erase from MongoDB
+                    // TODO: Erase entity from MongoDB
                 }
             }
 

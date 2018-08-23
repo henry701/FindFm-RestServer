@@ -11,10 +11,12 @@ namespace RestServer.Http.Request
         /// <summary>
         /// The e-mail for the <see cref="Models.User"/> account
         /// </summary>
+        [BindRequired]
         public string Email { get; set; }
         /// <summary>
         /// The password for the <see cref="Models.User"/> account
         /// </summary>
+        [BindRequired]
         public string Password { get; set; }
     }
 }

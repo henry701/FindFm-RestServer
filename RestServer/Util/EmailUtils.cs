@@ -33,7 +33,7 @@ namespace RestServer.Util
             Confirmation confirmation = new Confirmation()
             {
                 User = user,
-                Token = token
+                _id = token
             };
 
             var insertConfirmationTask = confirmationCollection.InsertOneAsync(confirmation);

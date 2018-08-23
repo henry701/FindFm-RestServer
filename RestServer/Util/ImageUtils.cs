@@ -51,8 +51,8 @@ namespace RestServer.Util
         {
             using (var image = SKImage.FromBitmap(bitmap))
             {
-                Stream output = new MemoryStream();
-                image.Encode(imageFormat, quality).SaveTo(output);
+                var encodedImage = image.Encode(imageFormat, quality);
+                Stream output = encodedImage.AsStream();
                 return output;
             }
         }

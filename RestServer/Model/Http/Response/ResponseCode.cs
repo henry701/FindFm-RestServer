@@ -54,5 +54,9 @@ namespace RestServer.Model.Http.Response
         /// A premium level higher than the current level is required for this operation to take place.
         /// </summary>
         RequiresPremium = 10,
+        /// <summary>
+        /// The supplied image is not valid for the required purposes.
+        /// </summary>
+        InvalidImage = 11,
     }
 }
