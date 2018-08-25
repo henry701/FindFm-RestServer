@@ -46,7 +46,7 @@ namespace RestServer.Controllers
         {
             this.EnsureModelValidation();
 
-            var collection = MongoWrapper.Database.GetCollection<User>(typeof(User).Name);
+            var collection = MongoWrapper.Database.GetCollection<User>(nameof(User));
 
             var filterBuilder = new FilterDefinitionBuilder<User>();
             var filter = filterBuilder.Eq((User u) => u.Email, requestBody.Email);

@@ -14,6 +14,7 @@ using Microsoft.IdentityModel.Tokens;
 using Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using MongoDB.Driver.GeoJsonObjectModel;
 using MongoDB.Driver.GridFS;
 using RestServer.Exceptions;
 using RestServer.Http.Request;
@@ -54,7 +55,7 @@ namespace RestServer.Controllers
         {
             this.EnsureModelValidation();
 
-            var userCollection = MongoWrapper.Database.GetCollection<User>(typeof(User).Name);
+            var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(User));
 
             var filterBuilder = new FilterDefinitionBuilder<User>();
             var filter = filterBuilder.Eq((User u) => u.Email, requestBody.Email);
@@ -76,28 +77,21 @@ namespace RestServer.Controllers
                 requestBody.Instrumentos = new List<InstrumentRequest>();
             }
 
+            DateTime creationDate = DateTime.UtcNow;
+
             var musician = new Musician()
             {
-                _id = ObjectId.GenerateNewId(),
+                _id = ObjectId.GenerateNewId(creationDate),
                 Born = ValidationUtils.ValidateBornDate(requestBody.Nascimento),
                 Email = ValidationUtils.ValidateEmail(requestBody.Email),
                 IsConfirmed = false,
-                LastIp = HttpContext.Connection.RemoteIpAddress,
-                LastPosition = null,
+                Ip = TrackedEntity<IPAddress>.From(HttpContext.Connection.RemoteIpAddress, creationDate),
+                Position = TrackedEntity<GeoJsonPoint<GeoJson2DGeographicCoordinates>>.From(null, creationDate),
                 Name = ValidationUtils.ValidateName(requestBody.NomeCompleto),
                 Password = Encryption.Encrypt(ValidationUtils.ValidatePassword(requestBody.Senha)),
                 PremiumLevel = PremiumLevel.None,
-                ImageReference = null,
-                Instruments = requestBody.Instrumentos.DefaultIfEmpty().Select(
-                    instr =>
-                        instr == null ? null : 
-                        new Instrument()
-                        {
-                            SkillLevel = (SkillLevel) instr.NivelHabilidade,
-                            Name = instr.Nome,
-                        })
-                        .Where(instr => instr != null)
-                        .ToList()
+                Avatar = null,
+                InstrumentSkills = requestBody.Instrumentos.DefaultIfEmpty().Where(instr => instr != null).ToDictionary(instr => SkillFromAppName(instr.Nome)).Select(keyPair => KeyValuePair.Create(keyPair.Key, (SkillLevel)keyPair.Value.NivelHabilidade)).ToDictionary(k => k.Key, k => k.Value)
             };
 
             Task photoTask;
@@ -115,7 +109,15 @@ namespace RestServer.Controllers
                 photo = ImageUtils.GuaranteeMaxSize(photo, 1000);
                 var photoStream = ImageUtils.ToStream(photo);
                 var fileId = ObjectId.GenerateNewId();
-                musician.ImageReference = fileId.ToString();
+                musician.Avatar = new ImageReference()
+                {
+                    _id = ObjectId.GenerateNewId(creationDate),
+                    MediaMetadata = new ImageMetadata()
+                    {
+                        MediaType = MediaType.Image,
+                        ContentType = "TODO"
+                    }
+                };
                 var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database);
                 photoTask = gridFsBucket.UploadFromStreamAsync(
                     fileId, 
@@ -136,7 +138,7 @@ namespace RestServer.Controllers
             }
             else
             {
-                musician.ImageReference = null;
+                musician.Avatar = null;
                 photoTask = Task.CompletedTask;
             }
 
@@ -162,7 +164,7 @@ namespace RestServer.Controllers
             // Não esperamos o e-mail ser enviado, apenas disparamos. Caso não tenha sido enviado vai ter um botão na home depois enchendo o saco pro usuário confirmar o e-mail dele.
             var sendEmailTask = EmailUtils.SendConfirmationEmail(MongoWrapper, SmtpConfiguration, ServerInfo, musician);
 
-            var (creationDate, expiryDate, token) = AuthenticationUtils.GenerateJwtTokenForUser(musician._id.ToString(), musician.Email, TokenConfigurations, SigningConfigurations);
+            var (tokenCreationDate, tokenExpiryDate, token) = AuthenticationUtils.GenerateJwtTokenForUser(musician._id.ToString(), musician.Email, TokenConfigurations, SigningConfigurations);
 
             responseBody.Message = "Registro efetuado com sucesso. Não se esqueça de confirmar seu e-mail!";
             responseBody.Code = ResponseCode.GenericSuccess;
@@ -171,13 +173,23 @@ namespace RestServer.Controllers
             {
                 tokenData = new
                 {
-                    created = creationDate,
-                    expiration = expiryDate,
+                    created = tokenCreationDate,
+                    expiration = tokenExpiryDate,
                     accessToken = token,
                 }
             };
             Response.StatusCode = (int) HttpStatusCode.OK;
             return responseBody;
+        }
+
+        private Skill SkillFromAppName(string name)
+        {
+            switch(name)
+            {
+                case "":
+                    return Skill.Bass;
+            }
+            throw new ValidationException("Habilidade inválida!");
         }
     }
 }
