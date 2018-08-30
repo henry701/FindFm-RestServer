@@ -49,6 +49,7 @@ namespace RestServer.Util
                 Priority = MailPriority.Normal,
                 SubjectEncoding = Encoding.UTF8,
                 // TODO a better body builder, maybe even a template, or view???
+                // AQUI É BODY BUILDER!!!
                 Body = "<a href='" + context.HostUri.TrimEnd('/') + "/account/confirm/" + token + "'>Clique aqui para confirmar seu cadastro</a>"
             };
 

@@ -92,6 +92,12 @@ namespace RestServer.Controllers
             responseBody.Success = true;
             responseBody.Data = new
             {
+                user = new
+                {
+                    user.Kind,
+                    user.Avatar,
+                    user.FullName,
+                },        
                 tokenData = new
                 {
                     created = creationDate,

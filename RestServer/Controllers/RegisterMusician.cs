@@ -85,15 +85,21 @@ namespace RestServer.Controllers
                 Born = ValidationUtils.ValidateBornDate(requestBody.Nascimento),
                 Email = ValidationUtils.ValidateEmail(requestBody.Email),
                 IsConfirmed = false,
+                City = requestBody.Cidade,
+                UF = requestBody.Uf,
+                Phone = requestBody.Telefone,
                 Ip = TrackedEntity<IPAddress>.From(HttpContext.Connection.RemoteIpAddress, creationDate),
-                Position = TrackedEntity<GeoJsonPoint<GeoJson2DGeographicCoordinates>>.From(null, creationDate),
-                Name = ValidationUtils.ValidateName(requestBody.NomeCompleto),
+                //Position = TrackedEntity<GeoJsonPoint<GeoJson2DGeographicCoordinates>>.From(null, creationDate),
+                Position = TrackedEntity<GeoJsonPoint<GeoJson2DGeographicCoordinates>>.From(creationDate),
+                FullName = ValidationUtils.ValidateName(requestBody.NomeCompleto),
+                UserName = requestBody.NomeUsuario,
                 Password = Encryption.Encrypt(ValidationUtils.ValidatePassword(requestBody.Senha)),
                 PremiumLevel = PremiumLevel.None,
-                Avatar = null,
-                InstrumentSkills = requestBody.Instrumentos.DefaultIfEmpty().Where(instr => instr != null).ToDictionary(instr => SkillFromAppName(instr.Nome)).Select(keyPair => KeyValuePair.Create(keyPair.Key, (SkillLevel)keyPair.Value.NivelHabilidade)).ToDictionary(k => k.Key, k => k.Value)
+                Avatar = null
+                //Isso da exception no mongo
+                //InstrumentSkills = requestBody.Instrumentos.DefaultIfEmpty().Where(instr => instr != null).ToDictionary(instr => SkillFromAppName(instr.Nome)).Select(keyPair => KeyValuePair.Create(keyPair.Key, (SkillLevel)keyPair.Value.NivelHabilidade)).ToDictionary(k => k.Key, k => k.Value)
             };
-
+            //TODO: Alterar imagem para Base64
             Task photoTask;
             if (requestBody.Foto != null)
             {
@@ -186,8 +192,29 @@ namespace RestServer.Controllers
         {
             switch(name)
             {
-                case "":
+                case "Guitarra":
+                    return Skill.ElectricGuitar;
+                case "Violão":
+                    return Skill.Guitar;             
+                case "Baixo":
                     return Skill.Bass;
+                case "Bateria":
+                    return Skill.Drums;
+                case "Vocal":
+                    return Skill.Vocal;
+                case "Saxofone":
+                    return Skill.Saxophone;
+                case "Flauta":
+                    return Skill.Flute;
+                case "Piano":
+                    return Skill.Piano;
+                case "Percussão":
+                    return Skill.Percussion;
+                case "Trombone":
+                    return Skill.Trombone;
+                default:
+                    throw new ValidationException("Habilidade inválida!");
+
             }
             throw new ValidationException("Habilidade inválida!");
         }
