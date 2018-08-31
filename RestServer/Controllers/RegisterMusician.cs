@@ -29,194 +29,43 @@ namespace RestServer.Controllers
 {
     [Route("/register/musician")]
     [Controller]
-    internal sealed class RegisterMusicianController : ControllerBase
+    internal sealed class RegisterMusicianController : RegisterControllerBase<RegisterMusicianRequest>
     {
-        private readonly ILogger<RegisterMusicianController> Logger;
-        private readonly MongoWrapper MongoWrapper;
-        private readonly ServerInfo ServerInfo;
-        private readonly SmtpConfiguration SmtpConfiguration;
-        private readonly TokenConfigurations TokenConfigurations;
-        private readonly SigningConfigurations SigningConfigurations;
-
-        public RegisterMusicianController(MongoWrapper mongoWrapper, ServerInfo serverInfo, SmtpConfiguration smtpConfiguration, TokenConfigurations tokenConfigurations, SigningConfigurations signingConfigurations, ILogger<RegisterMusicianController> logger)
+        public RegisterMusicianController(MongoWrapper mongoWrapper, ServerInfo serverInfo, SmtpConfiguration smtpConfiguration, TokenConfigurations tokenConfigurations, SigningConfigurations signingConfigurations, ILogger<RegisterMusicianController> logger) : base(mongoWrapper, serverInfo, smtpConfiguration, tokenConfigurations, signingConfigurations, logger)
         {
-            Logger = logger;
-            Logger.LogTrace($"{nameof(RegisterMusicianController)} Constructor Invoked");
-            MongoWrapper = mongoWrapper;
-            ServerInfo = serverInfo;
-            SmtpConfiguration = smtpConfiguration;
-            TokenConfigurations = tokenConfigurations;
-            SigningConfigurations = signingConfigurations;
+
         }
 
-        [HttpPost]
-        [AllowAnonymous] // No authorization required for Register Request, obviously
-        public async Task<dynamic> Post([FromBody] RegisterMusicianRequest requestBody)
+        protected override async Task<User> BindUser(RegisterMusicianRequest requestBody, DateTime creationDate)
         {
-            this.EnsureModelValidation();
-
-            var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(User));
-
-            var filterBuilder = new FilterDefinitionBuilder<User>();
-            var filter = filterBuilder.Eq((User u) => u.Email, requestBody.Email);
-            var existingUserCount = (await userCollection.CountDocumentsAsync(filter));
-
-            var responseBody = new ResponseBody();
-
-            if (existingUserCount > 0)
-            {
-                responseBody.Code = ResponseCode.AlreadyExists;
-                responseBody.Success = false;
-                responseBody.Message = "Usuário com este e-mail já existe!";
-                Response.StatusCode = (int) HttpStatusCode.Conflict;
-                return responseBody;
-            }
-
-            if(requestBody.Instrumentos == null)
+            if (requestBody.Instrumentos == null)
             {
                 requestBody.Instrumentos = new List<InstrumentRequest>();
             }
 
-            DateTime creationDate = DateTime.UtcNow;
-
-            var musician = new Musician()
+            return await Task.Run(() => new Musician()
             {
                 _id = ObjectId.GenerateNewId(creationDate),
                 Born = ValidationUtils.ValidateBornDate(requestBody.Nascimento),
                 Email = ValidationUtils.ValidateEmail(requestBody.Email),
                 IsConfirmed = false,
                 City = requestBody.Cidade,
-                UF = requestBody.Uf,
-                Phone = requestBody.Telefone,
+                Address = new Address()
+                {
+                    City = requestBody.Cidade,
+                    State = EnumExtensions.FromShortDisplayName<BrazilState>(requestBody.Uf),
+                },
+                Phone = ValidationUtils.ValidatePhoneNumber(ParsingUtils.ParsePhoneNumber(requestBody.Telefone)),
                 Ip = TrackedEntity<IPAddress>.From(HttpContext.Connection.RemoteIpAddress, creationDate),
-                //Position = TrackedEntity<GeoJsonPoint<GeoJson2DGeographicCoordinates>>.From(null, creationDate),
-                Position = TrackedEntity<GeoJsonPoint<GeoJson2DGeographicCoordinates>>.From(creationDate),
+                Position = TrackedEntity<GeoJsonPoint<GeoJson2DGeographicCoordinates>>.From(null, creationDate),
                 FullName = ValidationUtils.ValidateName(requestBody.NomeCompleto),
                 UserName = requestBody.NomeUsuario,
                 Password = Encryption.Encrypt(ValidationUtils.ValidatePassword(requestBody.Senha)),
                 PremiumLevel = PremiumLevel.None,
-                Avatar = null
+                Avatar = null,
                 //Isso da exception no mongo
                 //InstrumentSkills = requestBody.Instrumentos.DefaultIfEmpty().Where(instr => instr != null).ToDictionary(instr => SkillFromAppName(instr.Nome)).Select(keyPair => KeyValuePair.Create(keyPair.Key, (SkillLevel)keyPair.Value.NivelHabilidade)).ToDictionary(k => k.Key, k => k.Value)
-            };
-            //TODO: Alterar imagem para Base64
-            Task photoTask;
-            if (requestBody.Foto != null)
-            {
-                var photo = ImageUtils.FromBytes(Array.ConvertAll(requestBody.Foto, (sb) => (byte)sb));
-                if(photo == null)
-                {
-                    responseBody.Code = ResponseCode.InvalidImage;
-                    responseBody.Success = false;
-                    responseBody.Message = "A imagem enviada é inválida!";
-                    Response.StatusCode = (int) HttpStatusCode.BadRequest;
-                    return responseBody;
-                }
-                photo = ImageUtils.GuaranteeMaxSize(photo, 1000);
-                var photoStream = ImageUtils.ToStream(photo);
-                var fileId = ObjectId.GenerateNewId();
-                musician.Avatar = new ImageReference()
-                {
-                    _id = ObjectId.GenerateNewId(creationDate),
-                    MediaMetadata = new ImageMetadata()
-                    {
-                        MediaType = MediaType.Image,
-                        ContentType = "TODO"
-                    }
-                };
-                var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database);
-                photoTask = gridFsBucket.UploadFromStreamAsync(
-                    fileId, 
-                    fileId.ToString(), 
-                    photoStream,
-                    new GridFSUploadOptions()
-                    {
-                        Metadata = new BsonDocument
-                        (
-                            new Dictionary<String, Object>
-                            {
-                                ["content-type"] = "image/jpeg"
-                            }
-                        )
-                    }
-                );
-                var streamCloseTask = photoTask.ContinueWith(tsk => photoStream.Close(), TaskContinuationOptions.ExecuteSynchronously);
-            }
-            else
-            {
-                musician.Avatar = null;
-                photoTask = Task.CompletedTask;
-            }
-
-            var insertTask = userCollection.InsertOneAsync(musician);
-
-            try
-            {
-                Task.WaitAll(insertTask, photoTask);
-            }
-            catch(Exception e)
-            {
-                Logger.LogError("Error while registering user", e);
-                if(insertTask.IsFaulted && !photoTask.IsFaulted)
-                {
-                    // TODO: Erase photo from MongoDB
-                }
-                else if(!insertTask.IsFaulted && photoTask.IsFaulted)
-                {
-                    // TODO: Erase entity from MongoDB
-                }
-            }
-
-            // Não esperamos o e-mail ser enviado, apenas disparamos. Caso não tenha sido enviado vai ter um botão na home depois enchendo o saco pro usuário confirmar o e-mail dele.
-            var sendEmailTask = EmailUtils.SendConfirmationEmail(MongoWrapper, SmtpConfiguration, ServerInfo, musician);
-
-            var (tokenCreationDate, tokenExpiryDate, token) = AuthenticationUtils.GenerateJwtTokenForUser(musician._id.ToString(), musician.Email, TokenConfigurations, SigningConfigurations);
-
-            responseBody.Message = "Registro efetuado com sucesso. Não se esqueça de confirmar seu e-mail!";
-            responseBody.Code = ResponseCode.GenericSuccess;
-            responseBody.Success = true;
-            responseBody.Data = new
-            {
-                tokenData = new
-                {
-                    created = tokenCreationDate,
-                    expiration = tokenExpiryDate,
-                    accessToken = token,
-                }
-            };
-            Response.StatusCode = (int) HttpStatusCode.OK;
-            return responseBody;
-        }
-
-        private Skill SkillFromAppName(string name)
-        {
-            switch(name)
-            {
-                case "Guitarra":
-                    return Skill.ElectricGuitar;
-                case "Violão":
-                    return Skill.Guitar;             
-                case "Baixo":
-                    return Skill.Bass;
-                case "Bateria":
-                    return Skill.Drums;
-                case "Vocal":
-                    return Skill.Vocal;
-                case "Saxofone":
-                    return Skill.Saxophone;
-                case "Flauta":
-                    return Skill.Flute;
-                case "Piano":
-                    return Skill.Piano;
-                case "Percussão":
-                    return Skill.Percussion;
-                case "Trombone":
-                    return Skill.Trombone;
-                default:
-                    throw new ValidationException("Habilidade inválida!");
-
-            }
-            throw new ValidationException("Habilidade inválida!");
+            });
         }
     }
 }

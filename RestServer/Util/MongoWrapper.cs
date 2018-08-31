@@ -1,5 +1,8 @@
-﻿using MongoDB.Bson.Serialization.Conventions;
+﻿using Models;
+using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
+using RestServer.Util.Extensions;
+using System.Linq;
 
 namespace RestServer.Util
 {
@@ -19,7 +22,7 @@ namespace RestServer.Util
             {
                 new CamelCaseElementNameConvention(),
                 new IgnoreExtraElementsConvention(true),
-                new IgnoreIfNullConvention(true)
+                new IgnoreIfNullConvention(true),
             };
             ConventionRegistry.Register("RestServerConventions", conventionPack, any => true);
 
@@ -27,9 +30,20 @@ namespace RestServer.Util
 
             Database = MongoClient.GetDatabase(databaseName);
 
-            // Listing databases just to make the lazy driver
-			// actually tries a connection before returning
-            MongoClient.ListDatabases();
+            CreateCollections();
+        }
+
+        private void CreateCollections()
+        {
+            var collectionNames = Database.ListCollectionNames().ToList();
+            typeof(Musician).Assembly.GetExportedTypes().Where(mdl =>
+                mdl.IsClass && !mdl.IsAbstract && !mdl.IsInterface &&
+                !collectionNames.Contains(mdl.Name) &&
+                mdl.IsSubclassOfRawGeneric(typeof(IIdentifiable<>))
+            ).AsParallel().ForAll(async tp =>
+            {               
+                await Database.CreateCollectionAsync(tp.Name);
+            });
         }
     }
 }

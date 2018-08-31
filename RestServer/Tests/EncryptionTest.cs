@@ -7,7 +7,7 @@ namespace RestServer.Tests
     /// <summary>
     /// Test class for unit testing of the user password <see cref="Encryption" /> hashing algorithm.
     /// </summary>
-    public class EncryptionTest
+    public sealed class EncryptionTest
     {
         /// <summary>
         /// Tests that the encrypted value is not equal to the unencrypted value.
@@ -18,6 +18,15 @@ namespace RestServer.Tests
             var encrypted = Encryption.Encrypt("potato");
             Assert.NotEmpty(encrypted);
             Assert.NotEqual(encrypted, Encoding.UTF8.GetBytes("potato"));
+        }
+
+        [Fact(Timeout = 1000)]
+        public void TestEncryptionPerformance()
+        {
+            Encryption.Encrypt(
+                @"A.VeryL0ng|áNdSecure!!Pass_WORD!
+                It must not take more than 1 second to encrypt."
+            );
         }
 
         /// <summary>

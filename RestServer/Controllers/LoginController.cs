@@ -63,29 +63,19 @@ namespace RestServer.Controllers
                 return responseBody;
             }
 
-            bool passwordMatches = await Task.Run(() => Encryption.Compare(requestBody.Password, user.Password));
+            var passwordMatchesTask = Task.Run(() => Encryption.Compare(requestBody.Password, user.Password));
 
+            var (creationDate, expiryDate, token) = await AuthenticationUtils.GenerateJwtTokenForUser(user._id.ToString(), TokenConfigurations, SigningConfigurations);
+        
+            bool passwordMatches = await passwordMatchesTask;
             if (!passwordMatches)
             {
                 responseBody.Message = "Senha incorreta!";
                 responseBody.Code = ResponseCode.IncorrectPassword;
                 responseBody.Success = false;
-                Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                Response.StatusCode = (int) HttpStatusCode.Unauthorized;
                 return responseBody;
             }
-
-            /*
-            if (!user.IsConfirmed)
-            {
-                responseBody.Message = "Seu e-mail não foi confirmado!";
-                responseBody.Code = ResponseCode.UnconfirmedEmail;
-                responseBody.Success = false;
-                Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                return responseBody;
-            }
-            */
-
-            var (creationDate, expiryDate, token) = AuthenticationUtils.GenerateJwtTokenForUser(user._id.ToString(), user.Email, TokenConfigurations, SigningConfigurations);
 
             responseBody.Message = "Login efetuado com sucesso!";
             responseBody.Code = ResponseCode.GenericSuccess;

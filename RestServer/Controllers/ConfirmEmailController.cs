@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Models;
-using MongoDB.Bson;
 using MongoDB.Driver;
 using RestServer.Model.Http.Response;
 using RestServer.Util;
@@ -33,21 +30,22 @@ namespace RestServer.Controllers
 
             var currentTime = DateTime.UtcNow;
 
-            var filterBuilder = new FilterDefinitionBuilder<Confirmation>();
-            var filter = filterBuilder.And(
-                filterBuilder.Eq(conf => conf._id, token),
-                filterBuilder.Lt(conf => conf.DeactivationDate, currentTime)
+            var confirmationFilterBuilder = new FilterDefinitionBuilder<Confirmation>();
+            var confirmationFilter = confirmationFilterBuilder.And
+            (
+                confirmationFilterBuilder.Eq(conf => conf._id, token),
+                confirmationFilterBuilder.Lt(conf => conf.DeactivationDate, currentTime)
             );
 
-            var updateBuilder = new UpdateDefinitionBuilder<Confirmation>();
-            var update = updateBuilder.Set(conf => conf.DeactivationDate, currentTime);
+            var confirmationUpdateBuilder = new UpdateDefinitionBuilder<Confirmation>();
+            var confirmationUpdate = confirmationUpdateBuilder.Set(conf => conf.DeactivationDate, currentTime);
 
-            var oldConfirmation = await confirmationCollection.FindOneAndUpdateAsync(filter, update, new FindOneAndUpdateOptions<Confirmation>()
+            var oldConfirmation = await confirmationCollection.FindOneAndUpdateAsync(confirmationFilter, confirmationUpdate, new FindOneAndUpdateOptions<Confirmation>()
             {
                 ReturnDocument = ReturnDocument.Before
             });
 
-            if(oldConfirmation == null)
+            if (oldConfirmation == null)
             {
                 HttpContext.Response.StatusCode = (int) HttpStatusCode.NotFound;
                 return new ResponseBody()
@@ -59,7 +57,17 @@ namespace RestServer.Controllers
                 };
             }
 
-            // TODO: Validar usuário de fato
+            var userFilterBuilder = new FilterDefinitionBuilder<User>();
+            var userFilter = userFilterBuilder.And
+            (
+                userFilterBuilder.Eq(user => user._id, oldConfirmation.User._id),
+                userFilterBuilder.Lt(user => user.DeactivationDate, currentTime)
+            );
+
+            var userUpdateBuilder = new UpdateDefinitionBuilder<User>();
+            var userUpdate = userUpdateBuilder.Set(user => user.IsConfirmed, true);
+
+            await userCollection.UpdateOneAsync(userFilter, userUpdate);
 
             return new ResponseBody()
             {

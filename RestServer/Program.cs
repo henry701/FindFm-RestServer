@@ -25,16 +25,23 @@ namespace RestServer
         /// </summary>
         /// <param name="args">The arguments received via command line.</param>
         /// <returns>The exit code for the program</returns>
-        public static async Task<int> Main(string[] args)
+        public static async Task Main(string[] args)
         {
             try
             {
-                return await WrappedMain(args);
+                int exitCode = await WrappedMain(args);
+                Environment.Exit(0);
             }
             catch(Exception e)
             {
                 LOGGER.Fatal(e);
-                return Environment.ExitCode != 0 ? Environment.ExitCode : -1;
+                if(Environment.UserInteractive)
+                {
+                    Console.Beep();
+                    Console.Out.WriteLine("Press any key to exit...");
+                    Console.ReadKey();
+                }
+                Environment.Exit(Environment.ExitCode != 0 ? Environment.ExitCode : -1);
             }
         }
 
@@ -109,12 +116,20 @@ namespace RestServer
                 await host.StopAsync(TimeSpan.FromMinutes(1));
                 var afterStop = DateTime.Now;
                 LOGGER.Info("Host has been stopped. Time taken: {}", afterStop - beforeStop);
+                if (shellTask.Exception?.InnerExceptions?.Count > 0)
+                {
+                    throw shellTask.Exception;
+                }
             }
             else if (hostTask.IsCompleted)
             {
                 LOGGER.Info("Host has been shutdown. Shutting down the Shell as well.");
                 shell.Stop();
                 LOGGER.Info("Shell has been stopped.");
+                if(hostTask.Exception?.InnerExceptions?.Count > 0)
+                {
+                    throw hostTask.Exception;
+                }
             }
         }
 

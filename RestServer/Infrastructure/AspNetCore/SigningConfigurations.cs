@@ -18,8 +18,7 @@ namespace RestServer.Infrastructure.AspNetCore
                 Key = new RsaSecurityKey(provider.ExportParameters(true));
             }
 
-            SigningCredentials = new SigningCredentials(
-                Key, SecurityAlgorithms.RsaSha256Signature);
+            SigningCredentials = new SigningCredentials(Key, SecurityAlgorithms.RsaSha256Signature);
         }
     }
 }

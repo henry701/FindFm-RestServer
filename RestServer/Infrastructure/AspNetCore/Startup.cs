@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -20,6 +21,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using NLog;
 using RestServer.Exceptions;
+using RestServer.Infrastructure.AspNetCore.Middleware;
 using RestServer.Model.Config;
 using RestServer.Model.Http.Response;
 using Util.Extensions;
@@ -87,6 +89,8 @@ namespace RestServer.Infrastructure.AspNetCore
                         .RequireAuthenticatedUser()
                         .Build();
 
+            services.AddSingleton<IActionResultExecutor<ObjectResult>, ObjectResultExecutor>();
+
             services.AddMvcCore(options =>
             {
                 options.ReturnHttpNotAcceptable = true;
@@ -125,15 +129,15 @@ namespace RestServer.Infrastructure.AspNetCore
             }).ConfigureApplicationPartManager(partManager =>
             {
                 var customControllerFeature = new CustomControllerFeatureProvider();
-                services.Add(new ServiceDescriptor(typeof(IApplicationFeatureProvider<ControllerFeature>),
-                    provider => customControllerFeature,
-                    ServiceLifetime.Singleton)
-                );
+                services.AddSingleton<IApplicationFeatureProvider<ControllerFeature>>(customControllerFeature);
                 partManager.FeatureProviders.Add(customControllerFeature);
                 partManager.PopulateFeature(typeof(ControllerFeature));
             });
 
-            return services.BuildServiceProvider();
+            return services.BuildServiceProvider(new ServiceProviderOptions()
+            {
+                ValidateScopes = true,
+            });
         }
 
         void IStartup.Configure(IApplicationBuilder app)
@@ -149,7 +153,7 @@ namespace RestServer.Infrastructure.AspNetCore
                 await next.Invoke();
             });
 
-            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            app.UseForwardedHeaders(new ForwardedHeadersOptions()
             {
                 ForwardedHeaders = ForwardedHeaders.All
             });
@@ -160,55 +164,10 @@ namespace RestServer.Infrastructure.AspNetCore
             }
             else
             {
-                app.Use(async (context, next) =>
-                {
-                    try
-                    {
-                        await next.Invoke();
-                    }
-                    catch(Exception exception)
-                    {
-                        ResponseBody errorBody;
-                        Logger.LogError(exception, "Unexpected exception occured!");
-                        errorBody = new ResponseBody()
-                        {
-                            Success = false,
-                            Code = ResponseCode.GenericFailure,
-                            Message = "Erro interno. Por favor, contate o suporte e passe o seguinte: " + context.TraceIdentifier,
-                            Data = context.TraceIdentifier
-                        };
-                        context.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
-                        await context.WriteResultAsync(new ObjectResult(errorBody));
-                    }
-                });
+                app.UseMiddleware<UnhandledExceptionHandler>();
             }
 
-            app.Use(async (context, next) =>
-            {
-                
-                try
-                {
-                    await next.Invoke();
-                }
-                // TODO: Exception Middleware clauses by class ^-^
-                catch (ApplicationException exception)
-                {
-                    ResponseBody errorBody;
-                    if (exception is ValidationException validationException)
-                    {
-                        context.Response.StatusCode = 422;
-                        errorBody = new ResponseBody()
-                        {
-                            Success = false,
-                            Code = ResponseCode.ValidationFailure,
-                            Message = validationException.Message,
-                        };
-                        await context.WriteResultAsync(new ObjectResult(errorBody));
-                        return;
-                    }
-                    throw;
-                }
-            });
+            app.UseMiddleware<ApplicationExceptionHandler>();
 
             Logger.LogDebug("Adding 'UseMvc' middleware to pipeline");
             app.UseMvc();

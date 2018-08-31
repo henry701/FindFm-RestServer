@@ -4,7 +4,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Models;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Driver.GridFS;
 using RestServer.Util;
 
@@ -27,12 +29,8 @@ namespace RestServer.Controllers
         {
             var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database);
             var downloadStream = await gridFsBucket.OpenDownloadStreamAsync(id);
-            var fileMetadata = downloadStream.FileInfo.Metadata.ToDictionary();
-            string contentType = fileMetadata.GetValueOrDefault("content-type")?.ToString();
-            if(String.IsNullOrWhiteSpace(contentType))
-            {
-                contentType = "application/octet-stream";
-            }
+            var fileMetadata = BsonSerializer.Deserialize<MediaMetadata>(downloadStream.FileInfo.Metadata);
+            string contentType = String.IsNullOrWhiteSpace(fileMetadata.ContentType) ? "application/octet-stream" : fileMetadata.ContentType;
             return new FileStreamResult(downloadStream, contentType);
         }
     }

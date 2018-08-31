@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -9,14 +10,12 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Util.Extensions
 {
-
     internal static class HttpContextExtensions
     {
         private static readonly RouteData EmptyRouteData = new RouteData();
-
         private static readonly ActionDescriptor EmptyActionDescriptor = new ActionDescriptor();
 
-        public static Task WriteResultAsync<TResult>(this HttpContext context, TResult result)
+        public static Task WriteResultAsync<TResult>(this HttpContext context, TResult result, ActionDescriptor actionDescriptor = null)
             where TResult : IActionResult
         {
             if (context == null)
@@ -24,19 +23,11 @@ namespace Util.Extensions
                 throw new ArgumentNullException(nameof(context));
             }
 
-            var executor = context.RequestServices.GetService<IActionResultExecutor<TResult>>();
-
-            if (executor == null)
-            {
-                throw new InvalidOperationException($"No result executor for '{typeof(TResult).FullName}' has been registered.");
-            }
-
             var routeData = context.GetRouteData() ?? EmptyRouteData;
 
-            var actionContext = new ActionContext(context, routeData, EmptyActionDescriptor);
+            var actionContext = new ActionContext(context, routeData, actionDescriptor ?? EmptyActionDescriptor);
 
-            return executor.ExecuteAsync(actionContext, result);
+            return result.ExecuteResultAsync(actionContext);
         }
     }
-
 }
