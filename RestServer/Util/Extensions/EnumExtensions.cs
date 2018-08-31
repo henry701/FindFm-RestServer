@@ -24,6 +24,10 @@ namespace RestServer.Util.Extensions
             {
                 TEnum enumInstance = (TEnum) enumVal;
                 DisplayAttribute displayAttr = enumInstance.GetAttribute<DisplayAttribute>();
+                if(displayAttr == null)
+                {
+                    continue;
+                }
                 if (String.Equals(displayAttr.Name, displayName, StringComparison.OrdinalIgnoreCase))
                 {
                     return enumInstance;
@@ -32,6 +36,7 @@ namespace RestServer.Util.Extensions
             return default;
         }
 
+        // TODO refactor with above
         public static TEnum FromShortDisplayName<TEnum>(string displayName) where TEnum : Enum
         {
             Type enumType = typeof(TEnum);
@@ -40,6 +45,10 @@ namespace RestServer.Util.Extensions
             {
                 TEnum enumInstance = (TEnum)enumVal;
                 DisplayAttribute displayAttr = enumInstance.GetAttribute<DisplayAttribute>();
+                if (displayAttr == null)
+                {
+                    continue;
+                }
                 if (String.Equals(displayAttr.ShortName, displayName, StringComparison.OrdinalIgnoreCase))
                 {
                     return enumInstance;

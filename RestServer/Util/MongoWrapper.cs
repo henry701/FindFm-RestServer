@@ -1,4 +1,5 @@
 ﻿using Models;
+using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 using RestServer.Util.Extensions;
@@ -37,7 +38,6 @@ namespace RestServer.Util
         {
             var collectionNames = Database.ListCollectionNames().ToList();
             typeof(Musician).Assembly.GetExportedTypes().Where(mdl =>
-                mdl.IsClass && !mdl.IsAbstract && !mdl.IsInterface &&
                 !collectionNames.Contains(mdl.Name) &&
                 mdl.IsSubclassOfRawGeneric(typeof(IIdentifiable<>))
             ).AsParallel().ForAll(async tp =>

@@ -12,8 +12,7 @@ namespace RestServer.Model.Http.Request
         public string Telefone { get; set; }
         public string Email { get; set; }
         public string Senha { get; set; }
-        //Alterar para string
-        public sbyte[] Foto { get; set; } // Java interop
+        public string Foto { get; set; }
 
         public string NomeCompleto { get; set; }
         public DateTime Nascimento { get; set; }

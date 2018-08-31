@@ -49,7 +49,6 @@ namespace RestServer.Controllers
                 Born = ValidationUtils.ValidateBornDate(requestBody.Nascimento),
                 Email = ValidationUtils.ValidateEmail(requestBody.Email),
                 IsConfirmed = false,
-                City = requestBody.Cidade,
                 Address = new Address()
                 {
                     City = requestBody.Cidade,
@@ -63,8 +62,8 @@ namespace RestServer.Controllers
                 Password = Encryption.Encrypt(ValidationUtils.ValidatePassword(requestBody.Senha)),
                 PremiumLevel = PremiumLevel.None,
                 Avatar = null,
-                //Isso da exception no mongo
-                //InstrumentSkills = requestBody.Instrumentos.DefaultIfEmpty().Where(instr => instr != null).ToDictionary(instr => SkillFromAppName(instr.Nome)).Select(keyPair => KeyValuePair.Create(keyPair.Key, (SkillLevel)keyPair.Value.NivelHabilidade)).ToDictionary(k => k.Key, k => k.Value)
+                // TODO: Find a way to convert all dictionary keys to String before serializing
+                // InstrumentSkills = requestBody.Instrumentos.DefaultIfEmpty().Where(instr => instr != null).ToDictionary(instr => EnumExtensions.FromDisplayName<Skill>(instr.Nome), el => (SkillLevel) el.NivelHabilidade),
             });
         }
     }

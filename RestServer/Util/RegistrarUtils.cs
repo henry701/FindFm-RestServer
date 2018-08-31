@@ -39,14 +39,14 @@ namespace RestServer.Util
             }
         }
 
-        public static async Task UploadPhoto(this ControllerBase controller, sbyte[] foto, GridFSBucket<ObjectId> gridFsBucket, User user, DateTime creationDate)
+        public static async Task UploadPhoto(this ControllerBase controller, string foto, GridFSBucket<ObjectId> gridFsBucket, User user, DateTime creationDate)
         {
             if(foto == null)
             {
                 user.Avatar = null;
                 return;
             }
-            var photo = ImageUtils.FromBytes(Array.ConvertAll(foto, (sb) => (byte)sb));
+            var photo = ImageUtils.FromBytes(Convert.FromBase64String(foto));
             if (photo == null)
             {
                 controller.Response.StatusCode = (int)HttpStatusCode.BadRequest;

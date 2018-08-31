@@ -12,7 +12,7 @@ namespace RestServer.Model.Http.Request
         public string Telefone { get; set; }
         public string Email { get; set; }
         public string Senha { get; set; }
-        public sbyte[] Foto { get; set; } // Java interop
+        public string Foto { get; set; }
 
         public string NomeEstabelecimento { get; set; }
         public int CapacidadeLocal { get; set; }
