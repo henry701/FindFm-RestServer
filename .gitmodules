@@ -4,3 +4,6 @@
 [submodule "sub_modules/FmShell"]
 	path = sub_modules/FmShell
 	url = https://github.com/henry701/FmShell
+[submodule "sub_modules/LiterCast"]
+	path = sub_modules/LiterCast
+	url = https://github.com/henry701/litercast
