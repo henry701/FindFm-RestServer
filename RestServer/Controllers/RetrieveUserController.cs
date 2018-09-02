@@ -54,6 +54,7 @@ namespace RestServer.Controllers
                             .Include(u => u.Email)
                             .Include(u => u.Phone)
                             .Include(u => u.Kind)
+                            .Include(new StringFieldDefinition<User>("_t"))
             ;
 
             var user = (await userCollection.FindAsync(userFilter, new FindOptions<User>
@@ -69,7 +70,7 @@ namespace RestServer.Controllers
                 responseBody.Code = ResponseCode.NotFound;
                 responseBody.Success = false;
                 responseBody.Message = "Usuário não encontrado!";
-                Response.StatusCode = (int) HttpStatusCode.Unauthorized;
+                Response.StatusCode = (int) HttpStatusCode.NotFound;
                 return responseBody;
             }
 
@@ -116,6 +117,7 @@ namespace RestServer.Controllers
                             .Include(u => u.Email)
                             .Include(u => u.Phone)
                             .Include(u => u.Kind)
+                            .Include(new StringFieldDefinition<User>("_t"))
             ;
 
             var user = (await userCollection.FindAsync(userFilter, new FindOptions<User>
@@ -128,10 +130,11 @@ namespace RestServer.Controllers
 
             if (user == null)
             {
+                // LOG
                 responseBody.Code = ResponseCode.NotFound;
                 responseBody.Success = false;
-                responseBody.Message = "Usuário não encontrado!";
-                Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                responseBody.Message = "Seu usuário não foi encontrado!";
+                Response.StatusCode = (int) HttpStatusCode.InternalServerError;
                 return responseBody;
             }
 
