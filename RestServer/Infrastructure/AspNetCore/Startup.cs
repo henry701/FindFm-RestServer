@@ -51,6 +51,107 @@ namespace RestServer.Infrastructure.AspNetCore
         {
             Logger.LogTrace($"{nameof(IStartup.ConfigureServices)} called");
 
+            ConfigureIpRateLimiting(services);
+
+            AuthorizationPolicy bearerPolicy = GenerateBearerJwtPolicy(services);
+
+            services.AddMvcCore(options =>
+            {
+                options.ReturnHttpNotAcceptable = true;
+                options.RespectBrowserAcceptHeader = true;
+                options.AllowBindingHeaderValuesToNonStringModelTypes = true;
+                options.Filters.Add(new CustomAuthorizeFilter(bearerPolicy));
+            })
+            .AddAuthorization(auth =>
+            {
+                auth.AddPolicy("Bearer", bearerPolicy);
+                auth.DefaultPolicy = bearerPolicy;
+            })
+            .AddJsonFormatters(options =>
+            {
+                options.ContractResolver = new CamelCasePropertyNamesContractResolver();
+                options.DateFormatHandling = DateFormatHandling.IsoDateFormat;
+                options.Formatting = HostingEnvironment.IsDevelopment() ? Formatting.Indented : Formatting.None;
+                options.ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor;
+                options.NullValueHandling = NullValueHandling.Ignore;
+            })
+            .AddXmlSerializerFormatters()
+            .AddFormatterMappings(options =>
+            {
+
+            })
+            .AddCors(options =>
+            {
+                // Allow all
+                options.AddDefaultPolicy(builder =>
+                {
+                    builder
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowAnyOrigin()
+                        .AllowCredentials();
+                });
+            }).ConfigureApplicationPartManager(partManager =>
+            {
+                var customControllerFeature = new CustomControllerFeatureProvider();
+                services.AddSingleton<IApplicationFeatureProvider<ControllerFeature>>(customControllerFeature);
+                partManager.FeatureProviders.Add(customControllerFeature);
+                partManager.PopulateFeature(typeof(ControllerFeature));
+            });
+
+            return services.BuildServiceProvider(new ServiceProviderOptions()
+            {
+                ValidateScopes = true,
+            });
+        }
+
+        private static AuthorizationPolicy GenerateBearerJwtPolicy(IServiceCollection services)
+        {
+            var signingConfigurations = new SigningConfigurations();
+            services.AddSingleton(signingConfigurations);
+
+            var tokenConfigurations = new TokenConfigurations()
+            {
+                // Audience = "ExampleAudience",
+                // Issuer = "ExampleIssuer",
+                Seconds = (int) TimeSpan.FromHours(2).TotalSeconds,
+            };
+            services.AddSingleton(tokenConfigurations);
+
+            services.AddAuthentication(authOptions =>
+            {
+                authOptions.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                authOptions.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(bearerOptions =>
+            {
+                var paramsValidation = bearerOptions.TokenValidationParameters;
+                paramsValidation.IssuerSigningKey = signingConfigurations.Key;
+                paramsValidation.ValidAudience = tokenConfigurations.Audience;
+                paramsValidation.ValidIssuer = tokenConfigurations.Issuer;
+                paramsValidation.RequireExpirationTime = true;
+
+                // Valida a assinatura de um token recebido
+                paramsValidation.ValidateIssuerSigningKey = true;
+
+                // Verifica se um token recebido ainda é válido
+                paramsValidation.ValidateLifetime = true;
+
+                // Tempo de tolerância para a expiração de um token (utilizado
+                // caso haja problemas de sincronismo de horário entre diferentes
+                // computadores envolvidos no processo de comunicação)
+                // e levando em conta o tempo da request de renovação de token
+                paramsValidation.ClockSkew = TimeSpan.FromSeconds(10);
+            });
+
+            var bearerPolicy = new AuthorizationPolicyBuilder()
+                        .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+                        .RequireAuthenticatedUser()
+                        .Build();
+            return bearerPolicy;
+        }
+
+        private static void ConfigureIpRateLimiting(IServiceCollection services)
+        {
             // needed to store rate limit counters and ip rules
             services.AddMemoryCache(setupCache =>
             {
@@ -98,96 +199,6 @@ namespace RestServer.Infrastructure.AspNetCore
                 rateLimitOptions.StackBlockedRequests = true;
                 rateLimitOptions.RealIpHeader = null;
                 rateLimitOptions.ClientWhitelist = new List<string>();
-            });
-
-            var signingConfigurations = new SigningConfigurations();
-            services.AddSingleton(signingConfigurations);
-
-            var tokenConfigurations = new TokenConfigurations()
-            {
-                // Audience = "ExampleAudience",
-                // Issuer = "ExampleIssuer",
-                Seconds = (int) TimeSpan.FromHours(2).TotalSeconds,
-            };
-            services.AddSingleton(tokenConfigurations);
-
-            services.AddAuthentication(authOptions =>
-            {
-                authOptions.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                authOptions.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(bearerOptions =>
-            {
-                var paramsValidation = bearerOptions.TokenValidationParameters;
-                paramsValidation.IssuerSigningKey = signingConfigurations.Key;
-                paramsValidation.ValidAudience = tokenConfigurations.Audience;
-                paramsValidation.ValidIssuer = tokenConfigurations.Issuer;
-                paramsValidation.RequireExpirationTime = true;
-
-                // Valida a assinatura de um token recebido
-                paramsValidation.ValidateIssuerSigningKey = true;
-
-                // Verifica se um token recebido ainda é válido
-                paramsValidation.ValidateLifetime = true;
-
-                // Tempo de tolerância para a expiração de um token (utilizado
-                // caso haja problemas de sincronismo de horário entre diferentes
-                // computadores envolvidos no processo de comunicação)
-                // e levando em conta o tempo da request de renovação de token
-                paramsValidation.ClockSkew = TimeSpan.FromSeconds(10);
-            });
-
-            var bearerPolicy = new AuthorizationPolicyBuilder()
-                        .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
-                        .RequireAuthenticatedUser()
-                        .Build();
-
-            services.AddMvcCore(options =>
-            {
-                options.ReturnHttpNotAcceptable = true;
-                options.RespectBrowserAcceptHeader = true;
-                options.AllowBindingHeaderValuesToNonStringModelTypes = true;
-                options.Filters.Add(new CustomAuthorizeFilter(bearerPolicy));
-            })
-            .AddAuthorization(auth =>
-            {
-                auth.AddPolicy("Bearer", bearerPolicy);
-                auth.DefaultPolicy = bearerPolicy;
-            })
-            .AddJsonFormatters(options =>
-            {
-                options.ContractResolver = new CamelCasePropertyNamesContractResolver();
-                options.DateFormatHandling = DateFormatHandling.IsoDateFormat;
-                options.Formatting = HostingEnvironment.IsDevelopment() ? Formatting.Indented : Formatting.None;
-                options.ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor;
-                options.NullValueHandling = NullValueHandling.Ignore;
-            })
-            .AddXmlSerializerFormatters()
-            .AddFormatterMappings(options =>
-            {
-                
-            })
-            .AddCors(options =>
-            {
-                // Allow all
-                options.AddDefaultPolicy(builder =>
-                {
-                    builder
-                        .AllowAnyHeader()
-                        .AllowAnyMethod()
-                        .AllowAnyOrigin()
-                        .AllowCredentials();
-                });
-            }).ConfigureApplicationPartManager(partManager =>
-            {
-                var customControllerFeature = new CustomControllerFeatureProvider();
-                services.AddSingleton<IApplicationFeatureProvider<ControllerFeature>>(customControllerFeature);
-                partManager.FeatureProviders.Add(customControllerFeature);
-                partManager.PopulateFeature(typeof(ControllerFeature));
-            });
-
-            return services.BuildServiceProvider(new ServiceProviderOptions()
-            {
-                ValidateScopes = true,
             });
         }
 

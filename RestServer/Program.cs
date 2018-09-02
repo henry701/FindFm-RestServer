@@ -13,6 +13,8 @@ using RestServer.Infrastructure.AspNetCore;
 using RestServer.Infrastructure.Shell;
 using NLog.Web;
 using Microsoft.Extensions.Logging;
+using LiterCast;
+using RestServer.ShellSupport;
 
 namespace RestServer
 {
@@ -104,12 +106,23 @@ namespace RestServer
                 }
             );
 
-            (Task shellTask, FmShell.Shell shell) = StartShell(serverConfig, serverInfo, serverController);
             (Task hostTask, IWebHost host) = StartHost(serverConfig, serverInfo, mongoWrapper);
 
+            var radioCastServer = new RadioCastServer(new IPEndPoint(IPAddress.Parse("0.0.0.0"), 8081));
+            var radioTask = radioCastServer.Start();
+
+            (Task shellTask, FmShell.Shell shell) = StartShell(serverConfig, serverInfo, serverController, radioCastServer);
+
+            await AwaitTermination(shellTask, shell, hostTask, host);
+
+            radioCastServer.Dispose();
+        }
+
+        private static async Task AwaitTermination(Task shellTask, FmShell.Shell shell, Task hostTask, IWebHost host)
+        {
             Task.WaitAny(shellTask, hostTask);
 
-            if(shellTask.IsCompleted)
+            if (shellTask.IsCompleted)
             {
                 LOGGER.Info("Shell has been shutdown. Shutting down the Host as well. Timeout: 1 minute");
                 var beforeStop = DateTime.Now;
@@ -126,7 +139,7 @@ namespace RestServer
                 LOGGER.Info("Host has been shutdown. Shutting down the Shell as well.");
                 shell.Stop();
                 LOGGER.Info("Shell has been stopped.");
-                if(hostTask.Exception?.InnerExceptions?.Count > 0)
+                if (hostTask.Exception?.InnerExceptions?.Count > 0)
                 {
                     throw hostTask.Exception;
                 }
@@ -142,10 +155,10 @@ namespace RestServer
             return (hostTask, host);
         }
 
-        private static (Task task, FmShell.Shell shell) StartShell(ServerConfiguration serverConfig, ServerInfo serverInfo, ServerController serverController)
+        private static (Task task, FmShell.Shell shell) StartShell(ServerConfiguration serverConfig, ServerInfo serverInfo, ServerController serverController, RadioCastServer radioCastServer)
         {
             LOGGER.Info("Starting Shell...");
-            var shell = new FmShell.Shell(new Shell.ShellMethods(serverInfo, serverController), serverConfig.ConsolePrompt, "FindFM", ConsoleColor.Black, ConsoleColor.Green);
+            var shell = new FmShell.Shell(new ShellMethods(serverInfo, serverController, radioCastServer), serverConfig.ConsolePrompt, "FindFM", ConsoleColor.Black, ConsoleColor.Green);
             var shellTask = new Task(() => shell.Start());
             shellTask.Start();
             return (shellTask, shell);
