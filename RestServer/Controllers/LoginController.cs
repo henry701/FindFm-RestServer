@@ -7,6 +7,7 @@ using System.Security.Principal;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Models;
@@ -48,9 +49,26 @@ namespace RestServer.Controllers
 
             var collection = MongoWrapper.Database.GetCollection<User>(nameof(User));
 
+            var projectionBuilder = new ProjectionDefinitionBuilder<User>();
+            var projection = projectionBuilder
+                             .Include(u => u.Password)
+                             .Include(u => u.Avatar)
+                             .Include(u => u.FullName)
+                             .Include(new StringFieldDefinition<User>("_t"));
+
             var filterBuilder = new FilterDefinitionBuilder<User>();
-            var filter = filterBuilder.Eq((User u) => u.Email, requestBody.Email);
-            var user = (await collection.FindAsync(filter)).SingleOrDefault();
+            var filter = filterBuilder.And(
+                filterBuilder.Eq(u => u.Email, requestBody.Email),
+                filterBuilder.Not(
+                    filterBuilder.Exists(u => u.DeactivationDate)
+                )
+            );
+
+            var user = (await collection.FindAsync(filter, new FindOptions<User>
+            {
+                Limit = 1,
+                Projection = projection,
+            })).SingleOrDefault();
 
             var responseBody = new ResponseBody();
 
@@ -59,7 +77,7 @@ namespace RestServer.Controllers
                 responseBody.Code = ResponseCode.NotFound;
                 responseBody.Success = false;
                 responseBody.Message = "Usuário não encontrado!";
-                Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                Response.StatusCode = (int) HttpStatusCode.Unauthorized;
                 return responseBody;
             }
 
@@ -87,7 +105,7 @@ namespace RestServer.Controllers
                     user.Kind,
                     user.Avatar,
                     user.FullName,
-                },        
+                },
                 tokenData = new
                 {
                     created = creationDate,

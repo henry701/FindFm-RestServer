@@ -10,6 +10,7 @@ using RestServer.Infrastructure.AspNetCore;
 using RestServer.Util;
 using RestServer.Model.Http.Response;
 using System.Net;
+using RestServer.Util.Extensions;
 
 namespace RestServer.Controllers
 {
@@ -32,7 +33,7 @@ namespace RestServer.Controllers
         [HttpGet("/auth/renew")]
         public async Task<dynamic> Get()
         {
-            string userId = User.Identities.First(claimIdent => claimIdent.AuthenticationType == "Login").Name;
+            var userId = this.GetCurrentUserId();
 
             var (creationDate, expiryDate, token) = await AuthenticationUtils.GenerateJwtTokenForUser(userId, TokenConfigurations, SigningConfigurations);
 

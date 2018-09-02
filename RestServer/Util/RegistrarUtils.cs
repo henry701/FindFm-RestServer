@@ -18,12 +18,16 @@ namespace RestServer.Util
         public static async Task TestUserExists(this ControllerBase controller, IMongoCollection<User> userCollection, string email)
         {
             var filterBuilder = new FilterDefinitionBuilder<User>();
-            var filter = filterBuilder.Eq((User u) => u.Email, email);
+            var filter = filterBuilder.And(
+                filterBuilder.Eq(u => u.Email, email),
+                filterBuilder.Not(
+                    filterBuilder.Exists(u => u.DeactivationDate)
+                )
+            );
             var existingUserCount = (await userCollection.CountDocumentsAsync(filter));
 
             if (existingUserCount > 0)
             {
-                controller.Response.StatusCode = (int) HttpStatusCode.Conflict;
                 throw new ResultException
                 (
                     new ObjectResult
@@ -34,7 +38,8 @@ namespace RestServer.Util
                             Success = false,
                             Message = "Usuário com este e-mail já existe!",
                         }
-                    )
+                    ),
+                    (int) HttpStatusCode.Conflict
                 );
             }
         }

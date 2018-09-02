@@ -39,9 +39,9 @@ namespace RestServer.Util
             var collectionNames = Database.ListCollectionNames().ToList();
             typeof(Musician).Assembly.GetExportedTypes().Where(mdl =>
                 !collectionNames.Contains(mdl.Name) &&
-                mdl.IsSubclassOfRawGeneric(typeof(IIdentifiable<>))
+                mdl.HasAttribute<RootEntityAttribute>()
             ).AsParallel().ForAll(async tp =>
-            {               
+            {
                 await Database.CreateCollectionAsync(tp.Name);
             });
         }

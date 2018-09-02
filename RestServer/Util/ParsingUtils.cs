@@ -47,7 +47,7 @@ namespace RestServer.Util
             \s*                                 # Any Whitespace
 
             (?<Number0>
-                \d
+                \d?
             )
 
             \s*                                 # Any Whitespace
@@ -93,7 +93,7 @@ namespace RestServer.Util
                 throw new ValidationException("Código de área do telefone ausente ou inválido!");
             }
 
-            if (String.IsNullOrWhiteSpace(number0Val) || String.IsNullOrWhiteSpace(number1Val) || String.IsNullOrWhiteSpace(number2Val))
+            if (String.IsNullOrWhiteSpace(number1Val) || String.IsNullOrWhiteSpace(number2Val))
             {
                 throw new ValidationException("Número do telefone ausente ou inválido!");
             }

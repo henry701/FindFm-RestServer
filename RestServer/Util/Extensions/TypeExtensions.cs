@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Text;
 
@@ -6,6 +7,11 @@ namespace RestServer.Util.Extensions
 {
     internal static class TypeExtensions
     {
+        public static bool HasAttribute<TAttribute>(this Type type)
+        {
+            return type.CustomAttributes.Where(ca => ca.AttributeType == typeof(TAttribute)).Count() > 0;
+        }
+
         public static bool IsSubclassOfRawGeneric(this Type toCheck, Type generic)
         {
             while (toCheck != null && toCheck != typeof(object))

@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Runtime.CompilerServices;
+using AspNetCoreRateLimit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -49,14 +51,63 @@ namespace RestServer.Infrastructure.AspNetCore
         {
             Logger.LogTrace($"{nameof(IStartup.ConfigureServices)} called");
 
+            // needed to store rate limit counters and ip rules
+            services.AddMemoryCache(setupCache =>
+            {
+                setupCache.CompactOnMemoryPressure = false;
+                setupCache.ExpirationScanFrequency = TimeSpan.FromSeconds(30.0d);
+            });
+
+            // inject counter and rules stores
+            services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
+            services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
+
+            // configure rate limiting
+            services.Configure<IpRateLimitOptions>(rateLimitOptions =>
+            {
+                rateLimitOptions.HttpStatusCode = 429; // Too Many Requests
+                rateLimitOptions.ClientWhitelist = new List<string>();
+                rateLimitOptions.IpWhitelist = new List<string>();
+                rateLimitOptions.GeneralRules = new List<RateLimitRule>()
+                {
+                    new RateLimitRule
+                    {
+                        Endpoint = "*",
+                        Limit = 15,
+                        Period = "1s",
+                    },
+                    new RateLimitRule
+                    {
+                        Endpoint = "*",
+                        Limit = 20,
+                        Period = "3s",
+                    },
+                    new RateLimitRule
+                    {
+                        Endpoint = "*",
+                        Limit = 100,
+                        Period = "5s",
+                    },
+                    new RateLimitRule
+                    {
+                        Endpoint = "*",
+                        Limit = 1000,
+                        Period = "50s",
+                    },
+                };
+                rateLimitOptions.StackBlockedRequests = true;
+                rateLimitOptions.RealIpHeader = null;
+                rateLimitOptions.ClientWhitelist = new List<string>();
+            });
+
             var signingConfigurations = new SigningConfigurations();
             services.AddSingleton(signingConfigurations);
 
             var tokenConfigurations = new TokenConfigurations()
             {
-                Audience = "ExampleAudience",
-                Issuer = "ExampleIssuer",
-                Seconds = (int) TimeSpan.FromHours(1).TotalSeconds,
+                // Audience = "ExampleAudience",
+                // Issuer = "ExampleIssuer",
+                Seconds = (int) TimeSpan.FromHours(2).TotalSeconds,
             };
             services.AddSingleton(tokenConfigurations);
 
@@ -81,7 +132,8 @@ namespace RestServer.Infrastructure.AspNetCore
                 // Tempo de tolerância para a expiração de um token (utilizado
                 // caso haja problemas de sincronismo de horário entre diferentes
                 // computadores envolvidos no processo de comunicação)
-                paramsValidation.ClockSkew = TimeSpan.FromSeconds(5);
+                // e levando em conta o tempo da request de renovação de token
+                paramsValidation.ClockSkew = TimeSpan.FromSeconds(10);
             });
 
             var bearerPolicy = new AuthorizationPolicyBuilder()
@@ -89,12 +141,11 @@ namespace RestServer.Infrastructure.AspNetCore
                         .RequireAuthenticatedUser()
                         .Build();
 
-            services.AddSingleton<IActionResultExecutor<ObjectResult>, ObjectResultExecutor>();
-
             services.AddMvcCore(options =>
             {
                 options.ReturnHttpNotAcceptable = true;
                 options.RespectBrowserAcceptHeader = true;
+                options.AllowBindingHeaderValuesToNonStringModelTypes = true;
                 options.Filters.Add(new CustomAuthorizeFilter(bearerPolicy));
             })
             .AddAuthorization(auth =>
@@ -153,10 +204,12 @@ namespace RestServer.Infrastructure.AspNetCore
                 await next.Invoke();
             });
 
-            app.UseForwardedHeaders(new ForwardedHeadersOptions()
+            var forwardedHeadersOptions = new ForwardedHeadersOptions()
             {
-                ForwardedHeaders = ForwardedHeaders.All
-            });
+                ForwardedHeaders = ForwardedHeaders.All,
+            };
+            forwardedHeadersOptions.KnownProxies.Add(IPAddress.Parse("127.0.0.1"));
+            app.UseForwardedHeaders(forwardedHeadersOptions);
 
             if (HostingEnvironment.IsDevelopment() && !ServerConfiguration.DisableErrorTraces)
             {
@@ -168,6 +221,8 @@ namespace RestServer.Infrastructure.AspNetCore
             }
 
             app.UseMiddleware<ApplicationExceptionHandler>();
+
+            app.UseIpRateLimiting();          
 
             Logger.LogDebug("Adding 'UseMvc' middleware to pipeline");
             app.UseMvc();

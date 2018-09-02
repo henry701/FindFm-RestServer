@@ -1,14 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using MongoDB.Bson;
 using RestServer.Exceptions;
 
 namespace RestServer.Util.Extensions
 {
     internal static class ControllerExtensions
     {
+        public static string GetCurrentUserId(this ControllerBase controller)
+        {
+            return controller.User.Identities.First(claimIdent => claimIdent.AuthenticationType == "Login")?.Name;
+        }
+
         public static void EnsureModelValidation(this ControllerBase controller)
         {
             if (controller.ModelState.IsValid)

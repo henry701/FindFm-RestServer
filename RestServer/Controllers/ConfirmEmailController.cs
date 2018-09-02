@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -22,6 +23,7 @@ namespace RestServer.Controllers
             MongoWrapper = mongoWrapper;
         }
 
+        [AllowAnonymous]
         [HttpGet("/account/confirm/{token}")]
         public async Task<dynamic> Get(string token)
         {
@@ -34,7 +36,9 @@ namespace RestServer.Controllers
             var confirmationFilter = confirmationFilterBuilder.And
             (
                 confirmationFilterBuilder.Eq(conf => conf._id, token),
-                confirmationFilterBuilder.Lt(conf => conf.DeactivationDate, currentTime)
+                confirmationFilterBuilder.Not(
+                    confirmationFilterBuilder.Exists(conf => conf.DeactivationDate)
+                )
             );
 
             var confirmationUpdateBuilder = new UpdateDefinitionBuilder<Confirmation>();

@@ -30,7 +30,7 @@ namespace RestServer.Infrastructure.AspNetCore.Middleware
             {
                 if (exception is ResultException resultException)
                 {
-                    context.Response.StatusCode = resultException.HttpCode;
+                    context.Response.StatusCode = resultException.HttpCode ?? context.Response.StatusCode;
                     await context.WriteResultAsync(resultException.Result);
                     return;
                 }
