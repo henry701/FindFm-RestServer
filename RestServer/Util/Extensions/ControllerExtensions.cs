@@ -13,7 +13,7 @@ namespace RestServer.Util.Extensions
     {
         public static string GetCurrentUserId(this ControllerBase controller)
         {
-            return controller.User.Identities.First(claimIdent => claimIdent.AuthenticationType == "Login")?.Name;
+            return controller.User.Identity.Name;
         }
 
         public static void EnsureModelValidation(this ControllerBase controller)

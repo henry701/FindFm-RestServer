@@ -19,6 +19,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using NLog;
@@ -53,19 +54,29 @@ namespace RestServer.Infrastructure.AspNetCore
 
             ConfigureIpRateLimiting(services);
 
-            AuthorizationPolicy bearerPolicy = GenerateBearerJwtPolicy(services);
+            ConfigureJwt(services);
 
+            ConfigureMvcCore(services);
+
+            return BuildServiceProvider(services);
+        }
+
+        private static IServiceProvider BuildServiceProvider(IServiceCollection services)
+        {
+            return services.BuildServiceProvider(new ServiceProviderOptions
+            {
+                ValidateScopes = true,
+            });
+        }
+
+        private void ConfigureMvcCore(IServiceCollection services)
+        {
             services.AddMvcCore(options =>
             {
                 options.ReturnHttpNotAcceptable = true;
                 options.RespectBrowserAcceptHeader = true;
                 options.AllowBindingHeaderValuesToNonStringModelTypes = true;
-                options.Filters.Add(new CustomAuthorizeFilter(bearerPolicy));
-            })
-            .AddAuthorization(auth =>
-            {
-                auth.AddPolicy("Bearer", bearerPolicy);
-                auth.DefaultPolicy = bearerPolicy;
+                options.Filters.Add(new AuthorizeFilter());
             })
             .AddJsonFormatters(options =>
             {
@@ -75,15 +86,13 @@ namespace RestServer.Infrastructure.AspNetCore
                 options.ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor;
                 options.NullValueHandling = NullValueHandling.Ignore;
             })
+            .AddAuthorization()
             .AddXmlSerializerFormatters()
-            .AddFormatterMappings(options =>
-            {
-
-            })
+            .AddFormatterMappings()
             .AddCors(options =>
             {
                 // Allow all
-                options.AddDefaultPolicy(builder =>
+                options.AddPolicy("CorsPolicy", builder =>
                 {
                     builder
                         .AllowAnyHeader()
@@ -98,16 +107,11 @@ namespace RestServer.Infrastructure.AspNetCore
                 partManager.FeatureProviders.Add(customControllerFeature);
                 partManager.PopulateFeature(typeof(ControllerFeature));
             });
-
-            return services.BuildServiceProvider(new ServiceProviderOptions()
-            {
-                ValidateScopes = true,
-            });
         }
 
-        private static AuthorizationPolicy GenerateBearerJwtPolicy(IServiceCollection services)
+        private static void ConfigureJwt(IServiceCollection services)
         {
-            var signingConfigurations = new SigningConfigurations();
+            var signingConfigurations = new SigningConfigurations("key.pem");
             services.AddSingleton(signingConfigurations);
 
             var tokenConfigurations = new TokenConfigurations()
@@ -118,36 +122,21 @@ namespace RestServer.Infrastructure.AspNetCore
             };
             services.AddSingleton(tokenConfigurations);
 
-            services.AddAuthentication(authOptions =>
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
             {
-                authOptions.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                authOptions.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(bearerOptions =>
-            {
-                var paramsValidation = bearerOptions.TokenValidationParameters;
-                paramsValidation.IssuerSigningKey = signingConfigurations.Key;
-                paramsValidation.ValidAudience = tokenConfigurations.Audience;
-                paramsValidation.ValidIssuer = tokenConfigurations.Issuer;
-                paramsValidation.RequireExpirationTime = true;
-
-                // Valida a assinatura de um token recebido
-                paramsValidation.ValidateIssuerSigningKey = true;
-
-                // Verifica se um token recebido ainda é válido
-                paramsValidation.ValidateLifetime = true;
-
-                // Tempo de tolerância para a expiração de um token (utilizado
-                // caso haja problemas de sincronismo de horário entre diferentes
-                // computadores envolvidos no processo de comunicação)
-                // e levando em conta o tempo da request de renovação de token
-                paramsValidation.ClockSkew = TimeSpan.FromSeconds(10);
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = tokenConfigurations.Issuer == null ? false : true,
+                    ValidateAudience = tokenConfigurations.Audience == null ? false : true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = tokenConfigurations.Issuer,
+                    ValidAudience = tokenConfigurations.Audience,
+                    ClockSkew = TimeSpan.FromSeconds(10),
+                    IssuerSigningKey = signingConfigurations.Key,
+                };
             });
-
-            var bearerPolicy = new AuthorizationPolicyBuilder()
-                        .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
-                        .RequireAuthenticatedUser()
-                        .Build();
-            return bearerPolicy;
         }
 
         private static void ConfigureIpRateLimiting(IServiceCollection services)
@@ -233,7 +222,10 @@ namespace RestServer.Infrastructure.AspNetCore
 
             app.UseMiddleware<ApplicationExceptionHandler>();
 
-            app.UseIpRateLimiting();          
+            app.UseIpRateLimiting();
+
+            app.UseMiddleware<AuthIssueHandlerMiddleware>();
+            app.UseAuthentication();
 
             Logger.LogDebug("Adding 'UseMvc' middleware to pipeline");
             app.UseMvc();

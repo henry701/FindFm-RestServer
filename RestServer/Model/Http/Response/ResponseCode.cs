@@ -58,5 +58,9 @@ namespace RestServer.Model.Http.Response
         /// The supplied image is not valid for the required purposes.
         /// </summary>
         InvalidImage = 11,
+        /// <summary>
+        /// The token provided for authentication is invalid.
+        /// </summary>
+        IncorrectAuthenticationToken = 12,
     }
 }

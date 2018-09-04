@@ -35,12 +35,11 @@ namespace RestServer.Controllers
             var names = new List<string>();
             foreach(Skill skill in Enum.GetValues(typeof(Skill)))
             {
-                if(skill == Skill.DEFAULT)
+                var display = skill.GetAttribute<DisplayAttribute>();
+                if(display == null)
                 {
                     continue;
                 }
-
-                var display = skill.GetAttribute<DisplayAttribute>();
                 names.Add(display.Name);
             }
             return new ResponseBody()

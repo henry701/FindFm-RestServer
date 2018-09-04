@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -25,10 +26,11 @@ namespace RestServer.Controllers
         }
 
         [HttpGet("/resource/{id}")]
-        public async Task<dynamic> Get([FromRoute] ObjectId id)
+        [AllowAnonymous]
+        public async Task<dynamic> Get([FromRoute] string id)
         {
             var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database);
-            var downloadStream = await gridFsBucket.OpenDownloadStreamAsync(id);
+            var downloadStream = await gridFsBucket.OpenDownloadStreamAsync(new ObjectId(id));
             var fileMetadata = BsonSerializer.Deserialize<MediaMetadata>(downloadStream.FileInfo.Metadata);
             string contentType = String.IsNullOrWhiteSpace(fileMetadata.ContentType) ? "application/octet-stream" : fileMetadata.ContentType;
             return new FileStreamResult(downloadStream, contentType);

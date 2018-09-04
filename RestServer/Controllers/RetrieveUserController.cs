@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -53,7 +54,6 @@ namespace RestServer.Controllers
                             .Include(u => u.FullName)
                             .Include(u => u.Email)
                             .Include(u => u.Phone)
-                            .Include(u => u.Kind)
                             .Include(new StringFieldDefinition<User>("_t"))
             ;
 
@@ -70,18 +70,31 @@ namespace RestServer.Controllers
                 responseBody.Code = ResponseCode.NotFound;
                 responseBody.Success = false;
                 responseBody.Message = "Usuário não encontrado!";
-                Response.StatusCode = (int) HttpStatusCode.NotFound;
+                Response.StatusCode = (int)HttpStatusCode.NotFound;
                 return responseBody;
             }
 
             responseBody.Code = ResponseCode.GenericSuccess;
             responseBody.Success = true;
             responseBody.Message = "Usuário encontrado com sucesso!";
-            responseBody.Data = new
+            responseBody.Data = BuildUserObject(user);
+
+            return responseBody;
+        }
+
+        private static dynamic BuildUserObject(User user)
+        {
+            return new
             {
                 usuario = new
                 {
-                    endereco = user.Address,
+                    endereco = new
+                    {
+                        estado = EnumExtensions.GetAttribute<DisplayAttribute>(user.Address.State).Name,
+                        rua = user.Address.Road,
+                        numero = user.Address.Numeration,
+                        cep = user.Address.ZipCode,
+                    },
                     avatar = user.Avatar,
                     email = user.Email,
                     nomeCompleto = user.FullName,
@@ -89,8 +102,6 @@ namespace RestServer.Controllers
                     tipo = user.Kind,
                 },
             };
-
-            return responseBody;
         }
 
         [HttpGet("me")]
@@ -116,7 +127,6 @@ namespace RestServer.Controllers
                             .Include(u => u.FullName)
                             .Include(u => u.Email)
                             .Include(u => u.Phone)
-                            .Include(u => u.Kind)
                             .Include(new StringFieldDefinition<User>("_t"))
             ;
 
@@ -130,7 +140,7 @@ namespace RestServer.Controllers
 
             if (user == null)
             {
-                // LOG
+                // TODO: LOG
                 responseBody.Code = ResponseCode.NotFound;
                 responseBody.Success = false;
                 responseBody.Message = "Seu usuário não foi encontrado!";
@@ -141,18 +151,7 @@ namespace RestServer.Controllers
             responseBody.Code = ResponseCode.GenericSuccess;
             responseBody.Success = true;
             responseBody.Message = "Usuário encontrado com sucesso!";
-            responseBody.Data = new
-            {
-                usuario = new
-                {
-                    endereco = user.Address,
-                    avatar = user.Avatar,
-                    email = user.Email,
-                    nomeCompleto = user.FullName,
-                    telefone = user.Phone,
-                    tipo = user.Kind,
-                },
-            };
+            responseBody.Data = responseBody.Data = BuildUserObject(user);
 
             return responseBody;
         }
