@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
+﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace RestServer.Http.Request
 {
@@ -11,12 +12,12 @@ namespace RestServer.Http.Request
         /// <summary>
         /// The e-mail for the <see cref="Models.User"/> account
         /// </summary>
-        [BindRequired]
+        [Required]
         public string Email { get; set; }
         /// <summary>
         /// The password for the <see cref="Models.User"/> account
         /// </summary>
-        [BindRequired]
+        [Required]
         public string Password { get; set; }
     }
 }

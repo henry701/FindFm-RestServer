@@ -22,20 +22,19 @@ namespace RestServer.Util.Extensions
             {
                 return;
             }
-            var exceptionList = new List<Exception>();
+            var errorList = new List<string>();
             foreach (ModelStateEntry modelState in controller.ModelState.Values)
             {
                 foreach (var error in modelState.Errors)
                 {
-                    string message = $"{error.ErrorMessage}: [AttemptedValue={modelState.AttemptedValue}]";
-                    var exception = new ValidationException(message, error.Exception);
-                    exceptionList.Add(exception);
+                    string message = $"{error.ErrorMessage} (Valor Enviado: {modelState.AttemptedValue})";
+                    errorList.Add(message);
                 }
             }
-            if (exceptionList.Count > 0)
+            if (errorList.Count > 0)
             {
-                AggregateException agg = new AggregateException(exceptionList);
-                throw new ApplicationException("Erro ao realizar o binding do request.", agg);
+                throw new ValidationException("Erro ao realizar o binding do request: " +
+                    errorList.Aggregate("", (s1, s2) => $"{s1}, {s2}"));
             }
         }
     }

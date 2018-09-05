@@ -4,6 +4,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.OpenSsl;
 
@@ -18,14 +19,21 @@ namespace RestServer.Infrastructure.AspNetCore
         {
             using (var reader = File.OpenText(fileName))
             {
-                var pem = new PemReader(reader);
-                var o = (RsaKeyParameters) pem.ReadObject();
+                var pemReader = new PemReader(reader);
+                var bouncyKey = (AsymmetricCipherKeyPair) pemReader.ReadObject();
+                var bouncyPrivateKey = (RsaPrivateCrtKeyParameters) bouncyKey.Private;
                 using (var rsa = new RSACryptoServiceProvider())
                 {
                     var parameters = new RSAParameters
                     {
-                        Modulus = o.Modulus.ToByteArray(),
-                        Exponent = o.Exponent.ToByteArray()
+                        Modulus = bouncyPrivateKey.Modulus.ToByteArrayUnsigned(),
+                        Exponent = bouncyPrivateKey.PublicExponent.ToByteArrayUnsigned(),
+                        D = bouncyPrivateKey.Exponent.ToByteArrayUnsigned(),
+                        P = bouncyPrivateKey.P.ToByteArrayUnsigned(),
+                        Q = bouncyPrivateKey.Q.ToByteArrayUnsigned(),
+                        DP = bouncyPrivateKey.DP.ToByteArrayUnsigned(),
+                        DQ = bouncyPrivateKey.DQ.ToByteArrayUnsigned(),
+                        InverseQ = bouncyPrivateKey.QInv.ToByteArrayUnsigned(),
                     };
                     rsa.ImportParameters(parameters);
                     Key = new RsaSecurityKey(rsa.ExportParameters(true));

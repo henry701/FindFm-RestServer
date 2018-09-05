@@ -77,7 +77,10 @@ namespace RestServer.Infrastructure.AspNetCore
                 options.RespectBrowserAcceptHeader = true;
                 options.AllowBindingHeaderValuesToNonStringModelTypes = true;
                 options.Filters.Add(new AuthorizeFilter());
+                options.ModelMetadataDetailsProviders.Add(new CustomRequiredBindingMetadataProvider());
             })
+            .AddDataAnnotations()
+            .SetCompatibilityVersion(CompatibilityVersion.Latest) // YOLO
             .AddJsonFormatters(options =>
             {
                 options.ContractResolver = new CamelCasePropertyNamesContractResolver();
@@ -118,7 +121,7 @@ namespace RestServer.Infrastructure.AspNetCore
             {
                 // Audience = "ExampleAudience",
                 // Issuer = "ExampleIssuer",
-                Seconds = (int) TimeSpan.FromHours(2).TotalSeconds,
+                Seconds = (int) TimeSpan.FromDays(834).TotalSeconds, // TODO: Remember to lower on launch
             };
             services.AddSingleton(tokenConfigurations);
 
@@ -129,10 +132,10 @@ namespace RestServer.Infrastructure.AspNetCore
                 {
                     ValidateIssuer = tokenConfigurations.Issuer == null ? false : true,
                     ValidateAudience = tokenConfigurations.Audience == null ? false : true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
                     ValidIssuer = tokenConfigurations.Issuer,
                     ValidAudience = tokenConfigurations.Audience,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = signingConfigurations.Key == null ? false : true,
                     ClockSkew = TimeSpan.FromSeconds(10),
                     IssuerSigningKey = signingConfigurations.Key,
                 };
