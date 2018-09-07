@@ -28,6 +28,10 @@ namespace RestServer.Infrastructure.AspNetCore.Middleware
             // TODO: Exception Middleware clauses by class ^-^
             catch (ApplicationException exception)
             {
+                if (context.Response.HasStarted)
+                {
+                    return;
+                }
                 if (exception is ResultException resultException)
                 {
                     context.Response.StatusCode = resultException.HttpCode ?? context.Response.StatusCode;

@@ -46,7 +46,7 @@ namespace RestServer.Util
 
         public static async Task UploadPhoto(this ControllerBase controller, string foto, GridFSBucket<ObjectId> gridFsBucket, User user, DateTime creationDate)
         {
-            if(foto == null)
+            if(String.IsNullOrWhiteSpace(foto))
             {
                 user.Avatar = null;
                 return;
@@ -54,7 +54,7 @@ namespace RestServer.Util
             var photo = ImageUtils.FromBytes(Convert.FromBase64String(foto));
             if (photo == null)
             {
-                controller.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                controller.Response.StatusCode = (int) HttpStatusCode.BadRequest;
                 throw new ResultException
                 (
                     new ObjectResult

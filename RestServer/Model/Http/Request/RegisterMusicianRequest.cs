@@ -17,8 +17,10 @@ namespace RestServer.Model.Http.Request
         public string Email { get; set; }
         [Required]
         public string Senha { get; set; }
+
         public string Foto { get; set; }
 
+        [Required]
         public string NomeCompleto { get; set; }
         [Required]
         public DateTime Nascimento { get; set; }

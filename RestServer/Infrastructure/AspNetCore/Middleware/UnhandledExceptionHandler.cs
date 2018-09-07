@@ -31,6 +31,10 @@ namespace RestServer.Infrastructure.AspNetCore.Middleware
             catch (Exception exception)
             {
                 Logger.LogError(exception, "Unexpected exception occured!");
+                if (context.Response.HasStarted)
+                {
+                    return;
+                }
                 ResponseBody errorBody = new ResponseBody()
                 {
                     Success = false,

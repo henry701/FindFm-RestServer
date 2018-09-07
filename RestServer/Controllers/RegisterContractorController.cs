@@ -27,43 +27,37 @@ using RestServer.Util.Extensions;
 
 namespace RestServer.Controllers
 {
-    [Route("/register/musician")]
+    [Route("/register/contractor")]
     [Controller]
-    internal sealed class RegisterMusicianController : RegisterControllerBase<RegisterMusicianRequest>
+    internal sealed class RegisterContractorController : RegisterControllerBase<RegisterContractorRequest>
     {
-        public RegisterMusicianController(MongoWrapper mongoWrapper, ServerInfo serverInfo, SmtpConfiguration smtpConfiguration, TokenConfigurations tokenConfigurations, SigningConfigurations signingConfigurations, ILogger<RegisterMusicianController> logger) : base(mongoWrapper, serverInfo, smtpConfiguration, tokenConfigurations, signingConfigurations, logger)
+        public RegisterContractorController(MongoWrapper mongoWrapper, ServerInfo serverInfo, SmtpConfiguration smtpConfiguration, TokenConfigurations tokenConfigurations, SigningConfigurations signingConfigurations, ILogger<RegisterContractorController> logger) : base(mongoWrapper, serverInfo, smtpConfiguration, tokenConfigurations, signingConfigurations, logger)
         {
 
         }
 
-        protected override async Task<User> BindUser(RegisterMusicianRequest requestBody, DateTime creationDate)
+        protected override async Task<User> BindUser(RegisterContractorRequest requestBody, DateTime creationDate)
         {
-            if (requestBody.Instrumentos == null)
-            {
-                requestBody.Instrumentos = new List<InstrumentRequest>();
-            }
-
-            return await Task.Run(() => new Musician()
+            return await Task.Run(() => new Contractor()
             {
                 _id = ObjectId.GenerateNewId(creationDate),
-                Born = ValidationUtils.ValidateBornDate(requestBody.Nascimento),
+                StartDate = ValidationUtils.ValidateStartDate(requestBody.Inauguracao),
                 Email = ValidationUtils.ValidateEmail(requestBody.Email),
                 IsConfirmed = false,
                 Address = new Address()
                 {
                     City = requestBody.Cidade,
                     State = EnumExtensions.FromShortDisplayName<BrazilState>(requestBody.Uf),
+                    Road = requestBody.Endereco,
+                    Numeration = requestBody.Numero,
                 },
                 Phone = ValidationUtils.ValidatePhoneNumber(ParsingUtils.ParsePhoneNumber(requestBody.Telefone)),
                 Ip = TrackedEntity<IPAddress>.From(HttpContext.Connection.RemoteIpAddress, creationDate),
                 Position = TrackedEntity<GeoJsonPoint<GeoJson2DGeographicCoordinates>>.From(null, creationDate),
-                FullName = ValidationUtils.ValidateName(requestBody.NomeCompleto),
                 UserName = requestBody.NomeUsuario,
                 Password = Encryption.Encrypt(ValidationUtils.ValidatePassword(requestBody.Senha)),
                 PremiumLevel = PremiumLevel.None,
                 Avatar = null,
-                // TODO: Find a way to convert all dictionary keys to String before serializing
-                // InstrumentSkills = requestBody.Instrumentos.DefaultIfEmpty().Where(instr => instr != null).ToDictionary(instr => EnumExtensions.FromDisplayName<Skill>(instr.Nome), el => (SkillLevel) el.NivelHabilidade),
             });
         }
     }

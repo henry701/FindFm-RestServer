@@ -28,6 +28,19 @@ namespace RestServer.Util
             return value;
         }
 
+        internal static DateTime ValidateStartDate(DateTime value)
+        {
+            if (value == default)
+            {
+                throw new ValidationException("A data deve estar settada!");
+            }
+            if (value > DateTime.UtcNow)
+            {
+                throw new ValidationException("Ha ha ha, muito engraçado! A data não pode ser no futuro, Marty McFly!");
+            }
+            return value.Date;
+        }
+
         public static DateTime ValidateBornDate(DateTime value)
         {
             if(value == default)

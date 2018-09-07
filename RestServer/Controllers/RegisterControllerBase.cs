@@ -72,7 +72,8 @@ namespace RestServer.Controllers
 
                 try
                 {
-                    Task.WaitAll(insertTask, photoTask);
+                    await insertTask;
+                    await photoTask;
                 }
                 catch (Exception e)
                 {

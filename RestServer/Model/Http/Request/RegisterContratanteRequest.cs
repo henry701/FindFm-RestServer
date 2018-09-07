@@ -17,10 +17,14 @@ namespace RestServer.Model.Http.Request
         public string Email { get; set; }
         [Required]
         public string Senha { get; set; }
+
         public string Foto { get; set; }
 
-        public string NomeEstabelecimento { get; set; }
+        [Required]
+        public string NomeCompleto { get; set; }
+        [Required]
         public int CapacidadeLocal { get; set; }
+        [Required]
         public DateTime Inauguracao { get; set; }
         [Required]
         public string Cidade { get; set; }
@@ -29,6 +33,6 @@ namespace RestServer.Model.Http.Request
         [Required]
         public string Endereco { get; set; }
         [Required]
-        public int Numero { get; set; }
+        public string Numero { get; set; }
     }
 }

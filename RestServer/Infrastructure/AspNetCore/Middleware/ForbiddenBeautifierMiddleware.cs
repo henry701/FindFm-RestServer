@@ -23,6 +23,11 @@ namespace RestServer.Infrastructure.AspNetCore.Middleware
         public async Task InvokeAsync(HttpContext context)
         {
             await Next(context);
+            if(context.Response.HasStarted)
+            {
+                // TODO: Log warn
+                return;
+            }
             if(context.Response.StatusCode == (int) HttpStatusCode.Forbidden)
             {
                 await context.WriteResultAsync(new ForbiddenResult());
