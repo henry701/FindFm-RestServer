@@ -101,7 +101,7 @@ namespace RestServer.Util
             return new PhoneNumber()
             {
                 CountryCode = ((PhoneCountry) Convert.ToInt32(countryCodeVal)),
-                Number = Convert.ToUInt64(number0Val + number1Val + number2Val),
+                Number = Convert.ToString(number0Val + number1Val + number2Val),
                 StateCode = (PhoneRegion) Convert.ToInt32(areaCodeVal),
             };
         }

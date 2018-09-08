@@ -97,9 +97,9 @@ namespace RestServer.Controllers
                     },
                     avatar = user.Avatar,
                     email = user.Email,
-                    nomeCompleto = user.FullName,
+                    user.FullName,
                     telefone = user.Phone,
-                    tipo = user.Kind,
+                    user.Kind,
                 },
             };
         }
