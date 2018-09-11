@@ -92,9 +92,9 @@ namespace RestServer.Controllers
                     },
                     avatar = user.Avatar,
                     email = user.Email,
-                    nomeCompleto = user.FullName,
+                    user.FullName,
                     telefone = user.Phone,
-                    tipo = user.Kind,
+                    user.Kind,
                 },
             };
         }
@@ -114,9 +114,9 @@ namespace RestServer.Controllers
                     },
                     avatar = musician.Avatar,
                     email = musician.Email,
-                    nomeCompleto = musician.FullName,
+                    musician.FullName,
                     telefone = musician.Phone,
-                    tipo = musician.Kind,
+                    musician.Kind,
                     // -sep,
                     musicas = musician.Songs.Select(song => new
                     {
