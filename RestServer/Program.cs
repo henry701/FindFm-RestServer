@@ -15,6 +15,10 @@ using NLog.Web;
 using Microsoft.Extensions.Logging;
 using LiterCast;
 using RestServer.ShellSupport;
+using System.Threading;
+using MongoDB.Driver;
+using MongoDB.Bson;
+using MongoDB.Driver.GridFS;
 
 namespace RestServer
 {
@@ -64,6 +68,8 @@ namespace RestServer
 
             MongoWrapper mongoWrapper = CreateMongoWrapper(config.Mongodb);
 
+            TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
+
             LOGGER.Info("Entering main program logic");            
 
             await StartServer(config, serverInfo, mongoWrapper);
@@ -71,6 +77,14 @@ namespace RestServer
             LOGGER.Info("Exiting program");
 
             return 0;
+        }
+
+        private static void TaskScheduler_UnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+        {
+            e.SetObserved();
+            LOGGER.Error(e.Exception, "Unhandled Task exception!");
+            Thread.Sleep(2000);
+            Environment.Exit(-5);
         }
 
         /// <summary>
@@ -108,14 +122,64 @@ namespace RestServer
 
             (Task hostTask, IWebHost host) = StartHost(serverConfig, serverInfo, mongoWrapper);
 
-            var radioCastServer = new RadioCastServer(new IPEndPoint(IPAddress.Parse("0.0.0.0"), 8081));
-            var radioTask = radioCastServer.Start();
+            (Task radioTask, RadioCastServer radioCastServer) = StartRadio();
 
             (Task shellTask, FmShell.Shell shell) = StartShell(serverConfig, serverInfo, serverController, radioCastServer);
+
+            Task radioFeeder = StartRadioFeeder(radioCastServer, mongoWrapper);
 
             await AwaitTermination(shellTask, shell, hostTask, host);
 
             radioCastServer.Dispose();
+        }
+
+        private static Task StartRadioFeeder(RadioCastServer radioCastServer, MongoWrapper mongoWrapper)
+        {
+            var songCollection = mongoWrapper.Database.GetCollection<Models.Song>(nameof(Models.Song));
+            var sortBuilder = new SortDefinitionBuilder<Models.Song>();
+            var sort = sortBuilder.Ascending(song => song.TimesPlayed);
+            var filterBuilder = new FilterDefinitionBuilder<Models.Song>();
+            var filter = filterBuilder.And
+            (
+                filterBuilder.Not(filterBuilder.Exists(song => song.DeactivationDate)),
+                filterBuilder.Eq(song => song.RadioAuthorized, true),
+                filterBuilder.Eq(song => song.Original, true)
+            );
+            var fsBucket = new GridFSBucket<ObjectId>(mongoWrapper.Database);
+            return Task.Run(async () =>
+            {
+                while (true)
+                {
+                    var findTask = songCollection.FindAsync(filter, new FindOptions<Models.Song>
+                    {
+                        AllowPartialResults = true,
+                        Sort = sort,
+                        Limit = 1
+                    });
+                    var findResult = await findTask;
+                    var firstSong = await findResult.FirstOrDefaultAsync();
+                    // If no songs, wait a minute before checking again
+                    if(firstSong == null)
+                    {
+                        Thread.Sleep(TimeSpan.FromMinutes(1));
+                        continue;
+                    }
+                    var audioRef = firstSong.AudioReference;
+                    var gridId = audioRef._id;
+                    var fileStreamTask = fsBucket.OpenDownloadStreamAsync(gridId);
+                    // Wait for the radio to need more songs before we add the track
+                    SpinWait.SpinUntil(() => radioCastServer.TrackCount <= 1);
+                    radioCastServer.AddTrack(new FileAudioSource(await fileStreamTask, firstSong.Name));
+                    // TODO: Increment played count by 1 here, or expose events on RadioCastServer and callback here
+                }
+            });
+        }
+
+        private static (Task radioTask, RadioCastServer radioCastServer) StartRadio()
+        {
+            var radioCastServer = new RadioCastServer(new IPEndPoint(IPAddress.Parse("0.0.0.0"), 8081), new RadioInfo());
+            var radioTask = radioCastServer.Start();
+            return (radioTask, radioCastServer);
         }
 
         private static async Task AwaitTermination(Task shellTask, FmShell.Shell shell, Task hostTask, IWebHost host)

@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -47,20 +49,9 @@ namespace RestServer.Controllers
                 )
             );
 
-            var projectionBuilder = new ProjectionDefinitionBuilder<User>();
-            var projection = projectionBuilder
-                            .Include(u => u.Address)
-                            .Include(u => u.Avatar)
-                            .Include(u => u.FullName)
-                            .Include(u => u.Email)
-                            .Include(u => u.Phone)
-                            .Include(new StringFieldDefinition<User>("_t"))
-            ;
-
             var user = (await userCollection.FindAsync(userFilter, new FindOptions<User>
             {
                 Limit = 1,
-                Projection = projection
             })).SingleOrDefault();
 
             var responseBody = new ResponseBody();
@@ -70,7 +61,7 @@ namespace RestServer.Controllers
                 responseBody.Code = ResponseCode.NotFound;
                 responseBody.Success = false;
                 responseBody.Message = "Usuário não encontrado!";
-                Response.StatusCode = (int)HttpStatusCode.NotFound;
+                Response.StatusCode = (int) HttpStatusCode.NotFound;
                 return responseBody;
             }
 
@@ -84,6 +75,10 @@ namespace RestServer.Controllers
 
         private static dynamic BuildUserObject(User user)
         {
+            if(user is Musician musician)
+            {
+                return BuildMusicianObject(musician);
+            }
             return new
             {
                 usuario = new
@@ -104,6 +99,38 @@ namespace RestServer.Controllers
             };
         }
 
+        private static dynamic BuildMusicianObject(Musician musician)
+        {
+            return new
+            {
+                usuario = new
+                {
+                    endereco = new
+                    {
+                        estado = EnumExtensions.GetAttribute<DisplayAttribute>(musician.Address.State).Name,
+                        rua = musician.Address.Road,
+                        numero = musician.Address.Numeration,
+                        cep = musician.Address.ZipCode,
+                    },
+                    avatar = musician.Avatar,
+                    email = musician.Email,
+                    nomeCompleto = musician.FullName,
+                    telefone = musician.Phone,
+                    tipo = musician.Kind,
+                    // -sep,
+                    musicas = musician.Songs.Select(song => new
+                    {
+                        nome = song.Name,
+                        idResource = song.AudioReference._id,
+                        duracao = song.DurationSeconds,
+                        autoral = song.Original,
+                        autorizadoRadio = song.RadioAuthorized
+                    }),
+                    habilidades = musician.InstrumentSkills.ToDictionary(kv => EnumExtensions.GetAttribute<DisplayAttribute>(kv.Key).Name, kv => (int) kv.Value)
+                },
+            };
+        }
+
         [HttpGet("me")]
         public async Task<dynamic> Get()
         {
@@ -120,20 +147,9 @@ namespace RestServer.Controllers
                 )
             );
 
-            var projectionBuilder = new ProjectionDefinitionBuilder<User>();
-            var projection = projectionBuilder
-                            .Include(u => u.Address)
-                            .Include(u => u.Avatar)
-                            .Include(u => u.FullName)
-                            .Include(u => u.Email)
-                            .Include(u => u.Phone)
-                            .Include(new StringFieldDefinition<User>("_t"))
-            ;
-
             var user = (await userCollection.FindAsync(userFilter, new FindOptions<User>
             {
                 Limit = 1,
-                Projection = projection
             })).SingleOrDefault();
 
             var responseBody = new ResponseBody();

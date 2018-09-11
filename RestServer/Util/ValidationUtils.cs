@@ -43,19 +43,7 @@ namespace RestServer.Util
 
         public static DateTime ValidateBornDate(DateTime value)
         {
-            if(value == default)
-            {
-                throw new ValidationException("A data de nascimento deve estar settada!");
-            }
-            if (value > DateTime.UtcNow)
-            {
-                throw new ValidationException("Ha ha ha, muito engraçado! A data de nascimento não pode ser no futuro, Marty McFly!");
-            }
-            if (value.Date.AddYears(18) > DateTime.UtcNow.Date)
-            {
-                throw new ValidationException("O usuário não pode ser menor de 18 anos!");
-            }
-            return value.Date;
+            return ValidateStartDate(value); // Shim
         }
 
         public static string ValidateName(string value)
