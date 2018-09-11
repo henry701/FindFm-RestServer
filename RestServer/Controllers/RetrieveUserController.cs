@@ -77,7 +77,7 @@ namespace RestServer.Controllers
         {
             if(user is Musician musician)
             {
-                return BuildMusicianObject(musician);
+                return BuildMusicianObject((Musician)user);
             }
             return new
             {
@@ -111,13 +111,16 @@ namespace RestServer.Controllers
                         rua = musician.Address.Road,
                         numero = musician.Address.Numeration,
                         cep = musician.Address.ZipCode,
+                        cidade = musician.Address.City,
                     },
                     avatar = musician.Avatar,
                     email = musician.Email,
                     musician.FullName,
                     telefone = musician.Phone,
                     musician.Kind,
+                    date = musician.StartDate,
                     // -sep,
+                    /*  Ta dando null pointer
                     musicas = musician.Songs.Select(song => new
                     {
                         nome = song.Name,
@@ -126,6 +129,7 @@ namespace RestServer.Controllers
                         autoral = song.Original,
                         autorizadoRadio = song.RadioAuthorized
                     }),
+                    */
                     habilidades = musician.InstrumentSkills.ToDictionary(kv => EnumExtensions.GetAttribute<DisplayAttribute>(kv.Key).Name, kv => (int) kv.Value)
                 },
             };
