@@ -2,12 +2,7 @@
 using NLog;
 using System;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Security.Cryptography;
 using RestServer.Model.Config;
-using System.Net.Mail;
-using System.Net;
 
 namespace RestServer.Util
 {

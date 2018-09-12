@@ -1,27 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Net;
-using System.Security.Claims;
-using System.Security.Principal;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
 using Models;
 using MongoDB.Bson;
-using MongoDB.Driver;
 using MongoDB.Driver.GeoJsonObjectModel;
-using MongoDB.Driver.GridFS;
-using RestServer.Exceptions;
-using RestServer.Http.Request;
 using RestServer.Infrastructure.AspNetCore;
 using RestServer.Model.Config;
 using RestServer.Model.Http.Request;
-using RestServer.Model.Http.Response;
 using RestServer.Util;
 using RestServer.Util.Extensions;
 

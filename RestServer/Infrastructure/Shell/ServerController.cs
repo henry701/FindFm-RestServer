@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace RestServer.Infrastructure.Shell
+﻿namespace RestServer.Infrastructure.Shell
 {
     internal sealed class ServerController
     {

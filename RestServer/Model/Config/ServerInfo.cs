@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Microsoft.AspNetCore.Hosting;
-
-namespace RestServer.Model.Config
+﻿namespace RestServer.Model.Config
 {
     public sealed class ServerInfo
     {

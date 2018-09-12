@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace RestServer.Infrastructure.AspNetCore
+﻿namespace RestServer.Infrastructure.AspNetCore
 {
     internal sealed class TokenConfigurations
     {

@@ -1,8 +1,6 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using RestServer.Exceptions;
 using SkiaSharp;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace RestServer.Util
 {

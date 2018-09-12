@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -77,7 +74,7 @@ namespace RestServer.Controllers
         {
             if(user is Musician musician)
             {
-                return BuildMusicianObject((Musician)user);
+                return BuildMusicianObject(musician);
             }
             return new
             {
@@ -120,8 +117,7 @@ namespace RestServer.Controllers
                     musician.Kind,
                     date = musician.StartDate,
                     // -sep,
-                    /*  Ta dando null pointer
-                    musicas = musician.Songs.Select(song => new
+                    musicas = musician.Songs?.Where(s => s != null).Select(song => new
                     {
                         nome = song.Name,
                         idResource = song.AudioReference._id,
@@ -129,8 +125,7 @@ namespace RestServer.Controllers
                         autoral = song.Original,
                         autorizadoRadio = song.RadioAuthorized
                     }),
-                    */
-                    habilidades = musician.InstrumentSkills.ToDictionary(kv => EnumExtensions.GetAttribute<DisplayAttribute>(kv.Key).Name, kv => (int) kv.Value)
+                    habilidades = musician.InstrumentSkills?.ToDictionary(kv => EnumExtensions.GetAttribute<DisplayAttribute>(kv.Key).Name, kv => (int) kv.Value)
                 },
             };
         }

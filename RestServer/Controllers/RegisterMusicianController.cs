@@ -1,27 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Net;
-using System.Security.Claims;
-using System.Security.Principal;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
 using Models;
 using MongoDB.Bson;
-using MongoDB.Driver;
 using MongoDB.Driver.GeoJsonObjectModel;
-using MongoDB.Driver.GridFS;
-using RestServer.Exceptions;
-using RestServer.Http.Request;
 using RestServer.Infrastructure.AspNetCore;
 using RestServer.Model.Config;
 using RestServer.Model.Http.Request;
-using RestServer.Model.Http.Response;
 using RestServer.Util;
 using RestServer.Util.Extensions;
 
@@ -48,6 +37,7 @@ namespace RestServer.Controllers
                 {
                     City = requestBody.Cidade,
                     State = EnumExtensions.FromShortDisplayName<BrazilState>(requestBody.Uf),
+                    // TODO: Musico nao passa endereço full pq?
                     // Road = requestBody.Endereco,
                     // Numeration = requestBody.NumeroEndereco,
                 },
@@ -59,8 +49,9 @@ namespace RestServer.Controllers
                 Password = Encryption.Encrypt(ValidationUtils.ValidatePassword(requestBody.Senha)),
                 PremiumLevel = PremiumLevel.None,
                 Avatar = null,
-                // TODO: Test that this does not generate MongoDB error
-                InstrumentSkills = requestBody.Instrumentos?.DefaultIfEmpty().Where(instr => instr != null).ToDictionary(instr => EnumExtensions.FromDisplayName<Skill>(instr.Nome), el => (SkillLevel)el.NivelHabilidade).ToHashSet()
+                InstrumentSkills = requestBody.Instrumentos?.DefaultIfEmpty().Where(instr => instr != null).ToDictionary(instr => EnumExtensions.FromDisplayName<Skill>(instr.Nome), el => (SkillLevel)el.NivelHabilidade).ToHashSet(),
+                Works = new HashSet<Work>(),
+                Songs = new HashSet<Song>(),
             });
         }
     }

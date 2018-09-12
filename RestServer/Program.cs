@@ -157,7 +157,7 @@ namespace RestServer
                         Limit = 1
                     });
                     var findResult = await findTask;
-                    var firstSong = await findResult.FirstOrDefaultAsync();
+                    var firstSong = await findResult.SingleOrDefaultAsync();
                     // If no songs, wait a minute before checking again
                     if(firstSong == null)
                     {

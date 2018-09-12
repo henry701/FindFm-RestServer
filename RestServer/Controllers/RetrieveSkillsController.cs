@@ -1,18 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Net;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Models;
-using MongoDB.Bson;
-using MongoDB.Driver;
-using RestServer.Model.Config;
 using RestServer.Model.Http.Response;
-using RestServer.Util;
 using RestServer.Util.Extensions;
 
 namespace RestServer.Controllers

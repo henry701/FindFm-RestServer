@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Linq;
-using System.Collections;
 using System.ComponentModel.DataAnnotations;
 
 namespace RestServer.Util.Extensions
@@ -13,7 +10,7 @@ namespace RestServer.Util.Extensions
         {
             Type enumType = enumValue.GetType();
             Type attributeType = typeof(TAttribute);
-            return enumType.GetMember(Enum.GetName(enumType, enumValue)).First().GetCustomAttributes(attributeType, true).OfType<TAttribute>().FirstOrDefault();
+            return enumType.GetMember(Enum.GetName(enumType, enumValue)).First().GetCustomAttributes(attributeType, true).OfType<TAttribute>().SingleOrDefault();
         }
 
         public static TEnum FromDisplayName<TEnum>(string displayName) where TEnum : Enum 
