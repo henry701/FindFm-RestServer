@@ -15,8 +15,6 @@ namespace RestServer.Util
             ClaimsIdentity identity = new ClaimsIdentity
             (
                 new GenericIdentity(userId, "Login")//,
-                // JWT Token was too heavy: We're only keeping ID and the random seed now. Still heavy though
-                // TODO: Make it lighter
                 //new[]
                 //{
                     // new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),

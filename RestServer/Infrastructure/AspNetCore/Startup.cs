@@ -111,7 +111,8 @@ namespace RestServer.Infrastructure.AspNetCore
             {
                 // Audience = "ExampleAudience",
                 // Issuer = "ExampleIssuer",
-                Seconds = (int) TimeSpan.FromDays(834).TotalSeconds, // TODO: Remember to lower on launch
+                // TODO: Remember to lower this TimeSpan on launch
+                Seconds = (int) TimeSpan.FromDays(834).TotalSeconds,
             };
             services.AddSingleton(tokenConfigurations);
 

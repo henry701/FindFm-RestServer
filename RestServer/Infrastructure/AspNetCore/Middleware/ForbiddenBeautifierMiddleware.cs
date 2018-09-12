@@ -22,7 +22,7 @@ namespace RestServer.Infrastructure.AspNetCore.Middleware
             await Next(context);
             if(context.Response.HasStarted)
             {
-                // TODO: Log warn
+                Logger.LogWarning("Attempted to write Forbidden response, but response has already started");
                 return;
             }
             if(context.Response.StatusCode == (int) HttpStatusCode.Forbidden)

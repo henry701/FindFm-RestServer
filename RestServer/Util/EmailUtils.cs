@@ -50,7 +50,7 @@ namespace RestServer.Util
                 SubjectEncoding = Encoding.UTF8,
                 // TODO a better body builder, maybe even a template, or view???
                 // AQUI É BODY BUILDER!!!
-                Body = "<a href='" + context.HostUri.TrimEnd('/') + "/account/confirm/" + token + "'>Clique aqui para confirmar seu cadastro</a>"
+                Body = "<a href='" + context.HostUri.TrimEnd('/') + "/account/confirm/" + token + "'>Clique aqui para confirmar seu cadastro FindFM</a>"
             };
 
             mailMessage.To.Add(user.Email);
