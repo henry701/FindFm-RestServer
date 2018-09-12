@@ -33,14 +33,13 @@ namespace RestServer.Util.Extensions
             return default;
         }
 
-        // TODO refactor with above
         public static TEnum FromShortDisplayName<TEnum>(string displayName) where TEnum : Enum
         {
             Type enumType = typeof(TEnum);
             Array enumValues = enumType.GetEnumValues();
             foreach (object enumVal in enumValues)
             {
-                TEnum enumInstance = (TEnum)enumVal;
+                TEnum enumInstance = (TEnum) enumVal;
                 DisplayAttribute displayAttr = enumInstance.GetAttribute<DisplayAttribute>();
                 if (displayAttr == null)
                 {

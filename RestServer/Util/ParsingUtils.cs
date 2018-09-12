@@ -5,7 +5,6 @@ using Models;
 
 namespace RestServer.Util
 {
-    // TODO: Essa classe é uma boa candidata para testes unitários
     internal static class ParsingUtils
     {
         private static readonly string phonePattern =

@@ -37,7 +37,7 @@ namespace RestServer.Controllers
                 {
                     City = requestBody.Cidade,
                     State = EnumExtensions.FromShortDisplayName<BrazilState>(requestBody.Uf),
-                    // TODO: Musico nao passa endereço full pq?
+                    // TODO: Musico nao passa endereço full pq? @Bruno
                     // Road = requestBody.Endereco,
                     // Numeration = requestBody.NumeroEndereco,
                 },

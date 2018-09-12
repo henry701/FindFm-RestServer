@@ -155,7 +155,7 @@ namespace RestServer.Controllers
 
             if (user == null)
             {
-                // TODO: LOG
+                Logger.LogError("User with valid JWT id was not found in database! Id: {}", id);
                 responseBody.Code = ResponseCode.NotFound;
                 responseBody.Success = false;
                 responseBody.Message = "Seu usuário não foi encontrado!";

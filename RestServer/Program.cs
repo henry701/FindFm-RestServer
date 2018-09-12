@@ -170,7 +170,7 @@ namespace RestServer
                     // Wait for the radio to need more songs before we add the track
                     SpinWait.SpinUntil(() => radioCastServer.TrackCount <= 1);
                     radioCastServer.AddTrack(new FileAudioSource(await fileStreamTask, firstSong.Name));
-                    // TODO: Increment played count by 1 here, or expose events on RadioCastServer and callback here
+                    // TODO: Increment played count by 1 here and persist to MongoDB, or expose events on RadioCastServer and callback here
                 }
             });
         }
