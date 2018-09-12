@@ -44,7 +44,7 @@ namespace RestServer.Util
 
         public static async Task UploadPhoto(this ControllerBase controller, string foto, GridFSBucket<ObjectId> gridFsBucket, User user, DateTime creationDate)
         {
-            if(String.IsNullOrWhiteSpace(foto))
+            if(string.IsNullOrWhiteSpace(foto))
             {
                 user.Avatar = null;
                 return;

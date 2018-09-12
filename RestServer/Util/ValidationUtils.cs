@@ -48,7 +48,7 @@ namespace RestServer.Util
 
         public static string ValidateName(string value)
         {
-            if (String.IsNullOrWhiteSpace(value))
+            if (string.IsNullOrWhiteSpace(value))
             {
                 throw new ValidationException("Seu nome não pode ser vazio ou conter apenas caracteres de espaço!");
             }
@@ -57,7 +57,7 @@ namespace RestServer.Util
 
         public static string ValidatePassword(string value)
         {
-            if(String.IsNullOrWhiteSpace(value))
+            if(string.IsNullOrWhiteSpace(value))
             {
                 throw new ValidationException("A senha não pode ser vazia ou conter apenas caracteres de espaço!");
             }

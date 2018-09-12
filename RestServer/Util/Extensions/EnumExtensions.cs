@@ -25,7 +25,7 @@ namespace RestServer.Util.Extensions
                 {
                     continue;
                 }
-                if (String.Equals(displayAttr.Name, displayName, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(displayAttr.Name, displayName, StringComparison.OrdinalIgnoreCase))
                 {
                     return enumInstance;
                 }
@@ -46,7 +46,7 @@ namespace RestServer.Util.Extensions
                 {
                     continue;
                 }
-                if (String.Equals(displayAttr.ShortName, displayName, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(displayAttr.ShortName, displayName, StringComparison.OrdinalIgnoreCase))
                 {
                     return enumInstance;
                 }

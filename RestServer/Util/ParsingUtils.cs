@@ -75,23 +75,23 @@ namespace RestServer.Util
             var number2Val = groups["Number2"].Value;
 
             // Country code without plus, but was actually area code
-            if(!String.IsNullOrWhiteSpace(countryCodeVal) && String.IsNullOrWhiteSpace(areaCodeVal))
+            if(!string.IsNullOrWhiteSpace(countryCodeVal) && string.IsNullOrWhiteSpace(areaCodeVal))
             {
                 areaCodeVal = countryCodeVal;
                 countryCodeVal = "";
             }
 
-            if(String.IsNullOrWhiteSpace(countryCodeVal))
+            if(string.IsNullOrWhiteSpace(countryCodeVal))
             {
                 countryCodeVal = "55";
             }
 
-            if(String.IsNullOrWhiteSpace(areaCodeVal))
+            if(string.IsNullOrWhiteSpace(areaCodeVal))
             {
                 throw new ValidationException("Código de área do telefone ausente ou inválido!");
             }
 
-            if (String.IsNullOrWhiteSpace(number1Val) || String.IsNullOrWhiteSpace(number2Val))
+            if (string.IsNullOrWhiteSpace(number1Val) || string.IsNullOrWhiteSpace(number2Val))
             {
                 throw new ValidationException("Número do telefone ausente ou inválido!");
             }
