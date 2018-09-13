@@ -70,7 +70,7 @@ namespace RestServer.Infrastructure.AspNetCore
                 options.ModelMetadataDetailsProviders.Add(new CustomRequiredBindingMetadataProvider());
             })
             .AddDataAnnotations()
-            .SetCompatibilityVersion(CompatibilityVersion.Latest) // YOLO
+            .SetCompatibilityVersion(CompatibilityVersion.Latest)
             .AddJsonFormatters(options =>
             {
                 options.ContractResolver = new CamelCasePropertyNamesContractResolver();
@@ -102,7 +102,7 @@ namespace RestServer.Infrastructure.AspNetCore
             });
         }
 
-        private static void ConfigureJwt(IServiceCollection services)
+        private void ConfigureJwt(IServiceCollection services)
         {
             var signingConfigurations = new SigningConfigurations("key.pem");
             services.AddSingleton(signingConfigurations);
@@ -111,8 +111,9 @@ namespace RestServer.Infrastructure.AspNetCore
             {
                 // Audience = "ExampleAudience",
                 // Issuer = "ExampleIssuer",
-                // TODO: Remember to lower this TimeSpan on launch
-                Seconds = (int) TimeSpan.FromDays(834).TotalSeconds,
+                Seconds = HostingEnvironment.IsDevelopment() ? 
+                            (int) TimeSpan.FromDays(834).TotalSeconds : 
+                            (int) TimeSpan.FromHours(2).TotalSeconds,
             };
             services.AddSingleton(tokenConfigurations);
 

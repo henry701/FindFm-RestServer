@@ -141,7 +141,9 @@ namespace RestServer
             var filterBuilder = new FilterDefinitionBuilder<Models.Song>();
             var filter = filterBuilder.And
             (
-                filterBuilder.Not(filterBuilder.Exists(song => song.DeactivationDate)),
+                filterBuilder.Not(
+                    filterBuilder.Exists(song => song.DeactivationDate)
+                ),
                 filterBuilder.Eq(song => song.RadioAuthorized, true),
                 filterBuilder.Eq(song => song.Original, true)
             );

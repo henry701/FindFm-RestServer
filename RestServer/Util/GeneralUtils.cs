@@ -3,6 +3,9 @@ using NLog;
 using System;
 using System.IO;
 using RestServer.Model.Config;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Security.Cryptography;
 
 namespace RestServer.Util
 {
@@ -12,6 +15,19 @@ namespace RestServer.Util
     internal static class GeneralUtils
     {
         private static readonly ILogger LOGGER = LogManager.GetCurrentClassLogger();
+
+        public static async Task<string> GenerateRandomString(int len = 10, IEnumerable<char> allowedChars = null)
+        {
+            // TODO
+            if(allowedChars == null)
+            {
+                allowedChars = new char[] { 'a' };
+            }
+            byte[] tokenBytes = new byte[len];
+            await Task.Run(() => new RNGCryptoServiceProvider().GetBytes(tokenBytes));
+            string token = Convert.ToBase64String(tokenBytes);
+            return token;
+        }
 
         public static ServerConfiguration ReadConfiguration(string path)
         {

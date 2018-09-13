@@ -1,34 +1,44 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Models;
 using MongoDB.Driver;
+using RestServer.Model.Config;
+using RestServer.Model.Http.Request;
 using RestServer.Model.Http.Response;
 using RestServer.Util;
 
 namespace RestServer.Controllers
 {
-    internal sealed class ConfirmEmailController : ControllerBase
+    [Route("/passwordRecovery")]
+    [Controller]
+    internal sealed class RecoverPasswordController : ControllerBase
     {
+        private readonly ILogger<RecoverPasswordController> Logger;
         private readonly MongoWrapper MongoWrapper;
-        private readonly ILogger<ConfirmEmailController> Logger;
+        private readonly ServerInfo ServerInfo;
 
-        public ConfirmEmailController(MongoWrapper mongoWrapper, ILogger<ConfirmEmailController> logger)
+        public RecoverPasswordController(MongoWrapper mongoWrapper, ServerInfo serverInfo, ILogger<RecoverPasswordController> logger)
         {
             Logger = logger;
-            Logger.LogTrace($"{nameof(ConfirmEmailController)} Constructor Invoked");
+            Logger.LogTrace($"{nameof(RecoverPasswordController)} Constructor Invoked");
             MongoWrapper = mongoWrapper;
+            ServerInfo = serverInfo;
         }
 
         [AllowAnonymous]
-        [HttpGet("/account/confirm/{token}")]
+        [HttpGet("{token}")]
         public async Task<dynamic> Get(string token)
         {
             var tokenCollection = MongoWrapper.Database.GetCollection<ReferenceToken>(nameof(ReferenceToken));
             var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(Models.User));
+
+            var randomPasswordTask = GeneralUtils.GenerateRandomString(10, new char[] { 'a' });
 
             var currentTime = DateTime.UtcNow;
 
@@ -36,7 +46,7 @@ namespace RestServer.Controllers
             var confirmationFilter = confirmationFilterBuilder.And
             (
                 confirmationFilterBuilder.Eq(conf => conf._id, token),
-                confirmationFilterBuilder.Eq(conf => conf.TokenType, TokenType.Confirmation),
+                confirmationFilterBuilder.Eq(conf => conf.TokenType, TokenType.PasswordRecovery),
                 confirmationFilterBuilder.Not(
                     confirmationFilterBuilder.Exists(conf => conf.DeactivationDate)
                 )
@@ -71,18 +81,28 @@ namespace RestServer.Controllers
                 )
             );
 
+            var randomPassword = await randomPasswordTask;
+            var randomPassEncrypted = Encryption.Encrypt(randomPassword);
+
             var userUpdateBuilder = new UpdateDefinitionBuilder<User>();
-            var userUpdate = userUpdateBuilder.Set(user => user.IsConfirmed, true);
+            var userUpdate = userUpdateBuilder.Set(user => user.Password, randomPassEncrypted);
 
             await userCollection.UpdateOneAsync(userFilter, userUpdate);
 
             return new ResponseBody()
             {
                 Code = ResponseCode.GenericSuccess,
-                Data = null,
-                Message = "E-mail validado com sucesso!",
+                Data = randomPassword,
+                Message = "Uma nova senha foi gerada!",
                 Success = true
             };
+        }
+
+        [AllowAnonymous]
+        [HttpPost]
+        public async Task<dynamic> Post([FromBody] PasswordRecoveryRequest value)
+        {
+            return await Task.Run(() => $"POST value: {value}");
         }
     }
 }

@@ -13,7 +13,7 @@ namespace RestServer.Util
     {
         public static async Task SendConfirmationEmail(MongoWrapper mongoWrapper, SmtpConfiguration smtpConfig, ServerInfo context, User user)
         {
-            var confirmationCollection = mongoWrapper.Database.GetCollection<Confirmation>(typeof(Confirmation).Name);
+            var confirmationCollection = mongoWrapper.Database.GetCollection<ReferenceToken>(typeof(ReferenceToken).Name);
 
             var tokenTask = GenerateRandomToken();
 
@@ -30,7 +30,7 @@ namespace RestServer.Util
 
             string token = await tokenTask;
 
-            Confirmation confirmation = new Confirmation()
+            ReferenceToken confirmation = new ReferenceToken()
             {
                 User = user,
                 _id = token
