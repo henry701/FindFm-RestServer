@@ -31,7 +31,7 @@ namespace RestServer.Util
             await Task.Run(() => randomNum.GetBytes(charIndexes));
             for (int i = 0; i < len; i++)
             {
-                chars[i] = allowedCharArray[charIndexes[i]];
+                chars[i] = allowedCharArray[charIndexes[i] % allowedCharArray.Length];
             }
             return new string(chars);
         }
