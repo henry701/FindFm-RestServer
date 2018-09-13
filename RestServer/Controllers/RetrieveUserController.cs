@@ -72,11 +72,7 @@ namespace RestServer.Controllers
 
         private static dynamic BuildUserObject(User user)
         {
-            if(user is Musician musician)
-            {
-                return BuildMusicianObject(musician);
-            }
-            return new
+            dynamic userObj = new
             {
                 usuario = new
                 {
@@ -94,40 +90,24 @@ namespace RestServer.Controllers
                     user.Kind,
                 },
             };
+            if (user is Musician musician)
+            {
+                IncrementMusicianObject(musician, userObj);
+            }
+            return userObj;
         }
 
-        private static dynamic BuildMusicianObject(Musician musician)
+        private static void IncrementMusicianObject(Musician musician, dynamic userObj)
         {
-            return new
+            userObj.musicas = musician.Songs?.Where(s => s != null).Select(song => new
             {
-                usuario = new
-                {
-                    endereco = new
-                    {
-                        estado = EnumExtensions.GetAttribute<DisplayAttribute>(musician.Address.State).Name,
-                        rua = musician.Address.Road,
-                        numero = musician.Address.Numeration,
-                        cep = musician.Address.ZipCode,
-                        cidade = musician.Address.City,
-                    },
-                    avatar = musician.Avatar,
-                    email = musician.Email,
-                    musician.FullName,
-                    telefone = musician.Phone,
-                    musician.Kind,
-                    date = musician.StartDate,
-                    // -sep,
-                    musicas = musician.Songs?.Where(s => s != null).Select(song => new
-                    {
-                        nome = song.Name,
-                        idResource = song.AudioReference._id,
-                        duracao = song.DurationSeconds,
-                        autoral = song.Original,
-                        autorizadoRadio = song.RadioAuthorized
-                    }),
-                    habilidades = musician.InstrumentSkills?.ToDictionary(kv => EnumExtensions.GetAttribute<DisplayAttribute>(kv.Key).Name, kv => (int) kv.Value)
-                },
-            };
+                nome = song.Name,
+                idResource = song.AudioReference._id,
+                duracao = song.DurationSeconds,
+                autoral = song.Original,
+                autorizadoRadio = song.RadioAuthorized
+            });
+            userObj.habilidades = musician.InstrumentSkills?.ToDictionary(kv => EnumExtensions.GetAttribute<DisplayAttribute>(kv.Key).Name, kv => (int)kv.Value);
         }
 
         [HttpGet("me")]
