@@ -20,17 +20,15 @@ namespace RestServer.Controllers
     {
         private readonly ILogger<RegisterControllerBase<TBody>> Logger;
         private readonly MongoWrapper MongoWrapper;
-        private readonly ServerInfo ServerInfo;
         private readonly SmtpConfiguration SmtpConfiguration;
         private readonly TokenConfigurations TokenConfigurations;
         private readonly SigningConfigurations SigningConfigurations;
 
-        public RegisterControllerBase(MongoWrapper mongoWrapper, ServerInfo serverInfo, SmtpConfiguration smtpConfiguration, TokenConfigurations tokenConfigurations, SigningConfigurations signingConfigurations, ILogger<RegisterControllerBase<TBody>> logger)
+        public RegisterControllerBase(MongoWrapper mongoWrapper, SmtpConfiguration smtpConfiguration, TokenConfigurations tokenConfigurations, SigningConfigurations signingConfigurations, ILogger<RegisterControllerBase<TBody>> logger)
         {
             Logger = logger;
             Logger.LogTrace($"{nameof(RegisterControllerBase<TBody>)} Constructor Invoked");
             MongoWrapper = mongoWrapper;
-            ServerInfo = serverInfo;
             SmtpConfiguration = smtpConfiguration;
             TokenConfigurations = tokenConfigurations;
             SigningConfigurations = signingConfigurations;
@@ -75,7 +73,7 @@ namespace RestServer.Controllers
             }
 
             // Não esperamos o e-mail ser enviado, apenas disparamos. Caso não tenha sido enviado vai ter um botão na home depois enchendo o saco pro usuário confirmar o e-mail dele.
-            var sendEmailTask = EmailUtils.SendConfirmationEmail(MongoWrapper, SmtpConfiguration, ServerInfo, user);
+            var sendEmailTask = EmailUtils.SendConfirmationEmail(MongoWrapper, SmtpConfiguration, user);
 
             var (tokenCreationDate, tokenExpiryDate, token) = await AuthenticationUtils.GenerateJwtTokenForUser(user._id.ToString(), TokenConfigurations, SigningConfigurations);
 

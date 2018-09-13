@@ -12,6 +12,7 @@ using RestServer.Model.Config;
 using RestServer.Model.Http.Request;
 using RestServer.Model.Http.Response;
 using RestServer.Util;
+using RestServer.Util.Extensions;
 
 namespace RestServer.Controllers
 {
@@ -21,14 +22,14 @@ namespace RestServer.Controllers
     {
         private readonly ILogger<RecoverPasswordController> Logger;
         private readonly MongoWrapper MongoWrapper;
-        private readonly ServerInfo ServerInfo;
+        private readonly SmtpConfiguration SmtpConfiguration;
 
-        public RecoverPasswordController(MongoWrapper mongoWrapper, ServerInfo serverInfo, ILogger<RecoverPasswordController> logger)
+        public RecoverPasswordController(MongoWrapper mongoWrapper, SmtpConfiguration smtpConfiguration, ILogger<RecoverPasswordController> logger)
         {
             Logger = logger;
             Logger.LogTrace($"{nameof(RecoverPasswordController)} Constructor Invoked");
             MongoWrapper = mongoWrapper;
-            ServerInfo = serverInfo;
+            SmtpConfiguration = smtpConfiguration;
         }
 
         [AllowAnonymous]
@@ -38,7 +39,10 @@ namespace RestServer.Controllers
             var tokenCollection = MongoWrapper.Database.GetCollection<ReferenceToken>(nameof(ReferenceToken));
             var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(Models.User));
 
-            var randomPasswordTask = GeneralUtils.GenerateRandomString(10, new char[] { 'a' });
+            var randomPasswordTask = GeneralUtils.GenerateRandomString(
+                10,
+                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_-".ToCharArray()
+            );
 
             var currentTime = DateTime.UtcNow;
 
@@ -100,9 +104,42 @@ namespace RestServer.Controllers
 
         [AllowAnonymous]
         [HttpPost]
-        public async Task<dynamic> Post([FromBody] PasswordRecoveryRequest value)
+        public async Task<dynamic> Post([FromBody] PasswordRecoveryRequest requestBody)
         {
-            return await Task.Run(() => $"POST value: {value}");
+            this.EnsureModelValidation();
+
+            var collection = MongoWrapper.Database.GetCollection<User>(nameof(User));
+
+            var projectionBuilder = new ProjectionDefinitionBuilder<User>();
+            var projection = projectionBuilder
+                             .Include(u => u._id)
+                             .Include(u => u.Email)
+                             .Include(u => u.FullName)
+                             .Include("_t");
+
+            var filterBuilder = new FilterDefinitionBuilder<User>();
+            var filter = filterBuilder.And(
+                filterBuilder.Eq(u => u.Email, requestBody.Email),
+                filterBuilder.Not(
+                    filterBuilder.Exists(u => u.DeactivationDate)
+                )
+            );
+
+            var user = (await collection.FindAsync(filter, new FindOptions<User>
+            {
+                Limit = 1,
+                Projection = projection,
+            })).SingleOrDefault();
+
+            await EmailUtils.SendPasswordRecoveryEmail(MongoWrapper, SmtpConfiguration, user);
+
+            return new ResponseBody
+            {
+                Code = ResponseCode.GenericSuccess,
+                Data = null,
+                Message = "Um código foi enviado para o e-mail! Este código permite a redefinição para uma senha gerada automaticamente.",
+                Success = true,
+            };
         }
     }
 }

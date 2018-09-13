@@ -20,7 +20,7 @@ namespace RestServer.Controllers
     [Controller]
     internal sealed class RegisterMusicianController : RegisterControllerBase<RegisterMusicianRequest>
     {
-        public RegisterMusicianController(MongoWrapper mongoWrapper, ServerInfo serverInfo, SmtpConfiguration smtpConfiguration, TokenConfigurations tokenConfigurations, SigningConfigurations signingConfigurations, ILogger<RegisterMusicianController> logger) : base(mongoWrapper, serverInfo, smtpConfiguration, tokenConfigurations, signingConfigurations, logger)
+        public RegisterMusicianController(MongoWrapper mongoWrapper, SmtpConfiguration smtpConfiguration, TokenConfigurations tokenConfigurations, SigningConfigurations signingConfigurations, ILogger<RegisterMusicianController> logger) : base(mongoWrapper, smtpConfiguration, tokenConfigurations, signingConfigurations, logger)
         {
 
         }

@@ -47,7 +47,7 @@ namespace RestServer.Controllers
                              .Include(u => u.Password)
                              .Include(u => u.Avatar)
                              .Include(u => u.FullName)
-                             .Include(new StringFieldDefinition<User>("_t"));
+                             .Include("_t");
 
             var filterBuilder = new FilterDefinitionBuilder<User>();
             var filter = filterBuilder.And(

@@ -6,6 +6,8 @@ using RestServer.Model.Config;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Security.Cryptography;
+using System.Linq;
+using System.Text;
 
 namespace RestServer.Util
 {
@@ -18,15 +20,20 @@ namespace RestServer.Util
 
         public static async Task<string> GenerateRandomString(int len = 10, IEnumerable<char> allowedChars = null)
         {
-            // TODO
             if(allowedChars == null)
             {
-                allowedChars = new char[] { 'a' };
+                allowedChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890".ToCharArray();
             }
-            byte[] tokenBytes = new byte[len];
-            await Task.Run(() => new RNGCryptoServiceProvider().GetBytes(tokenBytes));
-            string token = Convert.ToBase64String(tokenBytes);
-            return token;
+            char[] allowedCharArray = allowedChars.Distinct().ToArray();
+            var randomNum = RandomNumberGenerator.Create();
+            char[] chars = new char[len];
+            byte[] charIndexes = new byte[len];
+            await Task.Run(() => randomNum.GetBytes(charIndexes));
+            for (int i = 0; i < len; i++)
+            {
+                chars[i] = allowedCharArray[charIndexes[i]];
+            }
+            return new string(chars);
         }
 
         public static ServerConfiguration ReadConfiguration(string path)
