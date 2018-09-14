@@ -72,7 +72,7 @@ namespace RestServer.Controllers
             );
 
             var userUpdateBuilder = new UpdateDefinitionBuilder<User>();
-            var userUpdate = userUpdateBuilder.Set(user => user.IsConfirmed, true);
+            var userUpdate = userUpdateBuilder.Set(user => user.EmailConfirmed, true);
 
             await userCollection.UpdateOneAsync(userFilter, userUpdate);
 

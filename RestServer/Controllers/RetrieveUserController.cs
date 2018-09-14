@@ -23,12 +23,11 @@ namespace RestServer.Controllers
         private readonly MongoWrapper MongoWrapper;
         private readonly ServerInfo ServerInfo;
 
-        public RetrieveUserController(MongoWrapper mongoWrapper, ServerInfo serverInfo, ILogger<RetrieveUserController> logger)
+        public RetrieveUserController(MongoWrapper mongoWrapper, ILogger<RetrieveUserController> logger)
         {
             Logger = logger;
             Logger.LogTrace($"{nameof(RetrieveUserController)} Constructor Invoked");
             MongoWrapper = mongoWrapper;
-            ServerInfo = serverInfo;
         }
 
         [AllowAnonymous]

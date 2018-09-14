@@ -32,7 +32,7 @@ namespace RestServer.Controllers
                 _id = ObjectId.GenerateNewId(creationDate),
                 StartDate = ValidationUtils.ValidateBornDate(requestBody.Nascimento),
                 Email = ValidationUtils.ValidateEmail(requestBody.Email),
-                IsConfirmed = false,
+                EmailConfirmed = false,
                 Address = new Address()
                 {
                     City = requestBody.Cidade,

@@ -10,7 +10,7 @@ namespace RestServer.Util.Extensions
     {
         public static void ValidateUserIsConfirmed(this User user)
         {
-            if (!user.IsConfirmed)
+            if (!user.EmailConfirmed)
             {
                 throw new ResultException
                 (

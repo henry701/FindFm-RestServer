@@ -15,14 +15,12 @@ namespace RestServer.Controllers
     {
         private readonly ILogger<ExampleController> Logger;
         private readonly MongoWrapper MongoWrapper;
-        private readonly ServerInfo ServerInfo;
 
-        public ExampleController(MongoWrapper mongoWrapper, ServerInfo serverInfo, ILogger<ExampleController> logger)
+        public ExampleController(MongoWrapper mongoWrapper, ILogger<ExampleController> logger)
         {
             Logger = logger;
             Logger.LogTrace($"{nameof(ExampleController)} Constructor Invoked");
             MongoWrapper = mongoWrapper;
-            ServerInfo = serverInfo;
         }
 
         [AllowAnonymous]
