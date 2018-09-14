@@ -83,8 +83,6 @@ namespace RestServer
         {
             e.SetObserved();
             LOGGER.Error(e.Exception, "Unhandled Task exception!");
-            Thread.Sleep(2000);
-            Environment.Exit(-5);
         }
 
         /// <summary>
