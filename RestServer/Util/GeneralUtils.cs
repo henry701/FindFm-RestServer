@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using System.Security.Cryptography;
 using System.Linq;
 using System.Text;
+using MongoDB.Driver;
+using Models;
 
 namespace RestServer.Util
 {
@@ -17,6 +19,20 @@ namespace RestServer.Util
     internal static class GeneralUtils
     {
         private static readonly ILogger LOGGER = LogManager.GetCurrentClassLogger();
+
+        public static FilterDefinition<TDocument> NotDeactivated<TDocument>(FilterDefinitionBuilder<TDocument> builder, DateTime? dateTime = null) where TDocument : IActivationAware
+        {
+            if(!dateTime.HasValue)
+            {
+                dateTime = DateTime.UtcNow;
+            }
+            return builder.Or(
+                builder.Not(
+                    builder.Exists(doc => doc.DeactivationDate)
+                ),
+                builder.Gt(doc => doc.DeactivationDate, dateTime.Value)
+            );
+        }
 
         public static async Task<string> GenerateRandomString(int len = 10, IEnumerable<char> allowedChars = null)
         {

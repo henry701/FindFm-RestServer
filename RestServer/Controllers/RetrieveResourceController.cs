@@ -29,7 +29,7 @@ namespace RestServer.Controllers
         {
             var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database);
             var downloadStream = await gridFsBucket.OpenDownloadStreamAsync(new ObjectId(id));
-            var fileMetadata = BsonSerializer.Deserialize<MediaMetadata>(downloadStream.FileInfo.Metadata);
+            var fileMetadata = BsonSerializer.Deserialize<FileMetadata>(downloadStream.FileInfo.Metadata);
             string contentType = string.IsNullOrWhiteSpace(fileMetadata.ContentType) ? "application/octet-stream" : fileMetadata.ContentType;
             return new FileStreamResult(downloadStream, contentType);
         }

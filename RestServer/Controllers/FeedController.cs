@@ -61,7 +61,7 @@ namespace RestServer.Controllers
                 .Include(post => post.Text)
                 .Include(post => post.Poster)
                 .Include(post => post.Likes)
-                .Include(post => post.MediaReferences)
+                .Include(post => post.FileReferences)
                 .Include(post => post.Comments)
             ;
 
@@ -102,7 +102,7 @@ namespace RestServer.Controllers
                 .Include(ad => ad.Title)
                 .Include(ad => ad.Text)
                 .Include(ad => ad.Poster)
-                .Include(ad => ad.MediaReference)
+                .Include(ad => ad.FileReference)
             ;
 
             var adFilterBuilder = new FilterDefinitionBuilder<Advertisement>();

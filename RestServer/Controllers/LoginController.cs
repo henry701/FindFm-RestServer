@@ -52,9 +52,7 @@ namespace RestServer.Controllers
             var filterBuilder = new FilterDefinitionBuilder<User>();
             var filter = filterBuilder.And(
                 filterBuilder.Eq(u => u.Email, requestBody.Email),
-                filterBuilder.Not(
-                    filterBuilder.Exists(u => u.DeactivationDate)
-                )
+                GeneralUtils.NotDeactivated(filterBuilder)
             );
 
             var user = (await collection.FindAsync(filter, new FindOptions<User>

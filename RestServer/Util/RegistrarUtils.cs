@@ -18,9 +18,7 @@ namespace RestServer.Util
             var filterBuilder = new FilterDefinitionBuilder<User>();
             var filter = filterBuilder.And(
                 filterBuilder.Eq(u => u.Email, email),
-                filterBuilder.Not(
-                    filterBuilder.Exists(u => u.DeactivationDate)
-                )
+                GeneralUtils.NotDeactivated(filterBuilder)
             );
             var existingUserCount = (await userCollection.CountDocumentsAsync(filter));
 
@@ -71,16 +69,16 @@ namespace RestServer.Util
             var fileId = ObjectId.GenerateNewId(creationDate);
             var metadata = new ImageMetadata
             (
-                new MediaMetadata()
+                new FileMetadata()
                 {
                     ContentType = "image/jpeg",
-                    MediaType = MediaType.Image
+                    FileType = FileType.Image
                 }
             );
             user.Avatar = new ImageReference()
             {
                 _id = fileId,
-                MediaMetadata = metadata
+                FileMetadata = metadata
             };
             Task photoTask = gridFsBucket.UploadFromStreamAsync(
                 fileId,

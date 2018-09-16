@@ -37,9 +37,7 @@ namespace RestServer.Controllers
             (
                 confirmationFilterBuilder.Eq(conf => conf._id, token),
                 confirmationFilterBuilder.Eq(conf => conf.TokenType, TokenType.Confirmation),
-                confirmationFilterBuilder.Not(
-                    confirmationFilterBuilder.Exists(conf => conf.DeactivationDate)
-                )
+                GeneralUtils.NotDeactivated(confirmationFilterBuilder, currentTime)
             );
 
             var confirmationUpdateBuilder = new UpdateDefinitionBuilder<ReferenceToken>();
@@ -66,9 +64,7 @@ namespace RestServer.Controllers
             var userFilter = userFilterBuilder.And
             (
                 userFilterBuilder.Eq(user => user._id, oldConfirmation.User._id),
-                userFilterBuilder.Not(
-                    userFilterBuilder.Exists(user => user.DeactivationDate)
-                )
+                GeneralUtils.NotDeactivated(userFilterBuilder)
             );
 
             var userUpdateBuilder = new UpdateDefinitionBuilder<User>();

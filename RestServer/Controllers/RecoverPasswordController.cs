@@ -51,9 +51,7 @@ namespace RestServer.Controllers
             (
                 confirmationFilterBuilder.Eq(conf => conf._id, token),
                 confirmationFilterBuilder.Eq(conf => conf.TokenType, TokenType.PasswordRecovery),
-                confirmationFilterBuilder.Not(
-                    confirmationFilterBuilder.Exists(conf => conf.DeactivationDate)
-                )
+                GeneralUtils.NotDeactivated(confirmationFilterBuilder)
             );
 
             var confirmationUpdateBuilder = new UpdateDefinitionBuilder<ReferenceToken>();
@@ -80,9 +78,7 @@ namespace RestServer.Controllers
             var userFilter = userFilterBuilder.And
             (
                 userFilterBuilder.Eq(user => user._id, oldConfirmation.User._id),
-                userFilterBuilder.Not(
-                    userFilterBuilder.Exists(user => user.DeactivationDate)
-                )
+                GeneralUtils.NotDeactivated(userFilterBuilder)
             );
 
             var randomPassword = await randomPasswordTask;
@@ -120,9 +116,7 @@ namespace RestServer.Controllers
             var filterBuilder = new FilterDefinitionBuilder<User>();
             var filter = filterBuilder.And(
                 filterBuilder.Eq(u => u.Email, requestBody.Email),
-                filterBuilder.Not(
-                    filterBuilder.Exists(u => u.DeactivationDate)
-                )
+                GeneralUtils.NotDeactivated(filterBuilder)
             );
 
             var user = (await collection.FindAsync(filter, new FindOptions<User>

@@ -40,9 +40,7 @@ namespace RestServer.Controllers
             var userFilter = userFilterBuilder.And
             (
                 userFilterBuilder.Eq(u => u._id, new ObjectId(id)),
-                userFilterBuilder.Not(
-                    userFilterBuilder.Exists(u => u.DeactivationDate)
-                )
+                GeneralUtils.NotDeactivated(userFilterBuilder)
             );
 
             var user = (await userCollection.FindAsync(userFilter, new FindOptions<User>
@@ -120,9 +118,7 @@ namespace RestServer.Controllers
             var userFilter = userFilterBuilder.And
             (
                 userFilterBuilder.Eq(u => u._id, new ObjectId(id)),
-                userFilterBuilder.Not(
-                    userFilterBuilder.Exists(u => u.DeactivationDate)
-                )
+                GeneralUtils.NotDeactivated(userFilterBuilder)
             );
 
             var user = (await userCollection.FindAsync(userFilter, new FindOptions<User>
