@@ -6,7 +6,7 @@
 
   "listening": {
     "address": "0.0.0.0",
-    "port": 8080,
+    "port": 8083,
     "basePath": "/"
   },
 
@@ -16,7 +16,7 @@
 
   "smtp": {
     "timeout": 3000,
-    "host": "mail.gmail.com",
+    "host": "smtp-mail.outlook.com",
     "port": 587,
     "email": "tutan.cat@gmail.com",
     "displayName": "tutan.cat@gmail.com",

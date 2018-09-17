@@ -8,8 +8,6 @@ namespace RestServer.Model.Http.Request
     internal sealed class RegisterContractorRequest : IBasicRegisterBody
     {
         [Required]
-        public string NomeUsuario { get; set; }
-        [Required]
         public string Telefone { get; set; }
         [Required]
         public string Email { get; set; }

@@ -50,7 +50,7 @@ namespace RestServer.Util
         {
             if (string.IsNullOrWhiteSpace(value))
             {
-                throw new ValidationException("Seu nome não pode ser vazio ou conter apenas caracteres de espaço!");
+                throw new ValidationException("O nome não pode ser vazio ou conter apenas caracteres de espaço!");
             }
             return value.Trim();
         }

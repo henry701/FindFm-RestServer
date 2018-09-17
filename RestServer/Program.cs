@@ -175,7 +175,7 @@ namespace RestServer
 
         private static (Task radioTask, RadioCastServer radioCastServer) StartRadio()
         {
-            var radioCastServer = new RadioCastServer(new IPEndPoint(IPAddress.Parse("0.0.0.0"), 8081), new RadioInfo());
+            var radioCastServer = new RadioCastServer(new IPEndPoint(IPAddress.Parse("0.0.0.0"), 8084), new RadioInfo());
             var radioTask = radioCastServer.Start();
             return (radioTask, radioCastServer);
         }
