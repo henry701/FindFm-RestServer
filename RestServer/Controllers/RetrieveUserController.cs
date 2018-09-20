@@ -12,6 +12,7 @@ using RestServer.Model.Config;
 using RestServer.Model.Http.Response;
 using RestServer.Util;
 using RestServer.Util.Extensions;
+using System.Dynamic;
 
 namespace RestServer.Controllers
 {
@@ -69,24 +70,23 @@ namespace RestServer.Controllers
 
         private static dynamic BuildUserObject(User user)
         {
-            dynamic userObj = new
-            {
-                usuario = new
+            dynamic userObj = new ExpandoObject();
+            userObj.usuario = new ExpandoObject();
+            userObj.usuario.endereco = new
                 {
-                    endereco = new
-                    {
-                        estado = EnumExtensions.GetAttribute<DisplayAttribute>(user.Address.State).Name,
-                        rua = user.Address.Road,
-                        numero = user.Address.Numeration,
-                        cep = user.Address.ZipCode,
-                    },
-                    avatar = user.Avatar,
-                    email = user.Email,
-                    user.FullName,
-                    telefone = user.Phone,
-                    user.Kind,
-                },
-            };
+                    estado = EnumExtensions.GetAttribute<DisplayAttribute>(user.Address.State).Name,
+                    rua = user.Address.Road,
+                    numero = user.Address.Numeration,
+                    cep = user.Address.ZipCode,
+                    cidade = user.Address.City
+                };
+            userObj.usuario.date = user.StartDate;
+            userObj.usuario.avatar = user.Avatar;
+            userObj.usuario.email = user.Email;
+            userObj.usuario.fullName = user.FullName;
+            userObj.usuario.telefone = user.Phone;
+            userObj.usuario.Kind = user.Kind;
+
             if (user is Musician musician)
             {
                 IncrementMusicianObject(musician, userObj);
@@ -102,7 +102,7 @@ namespace RestServer.Controllers
              does not contain a definition for 'musicas'
              */
              
-            userObj.musicas = musician.Songs?.Where(s => s != null).Select(song => new
+            userObj.usuario.musicas = musician.Songs?.Where(s => s != null).Select(song => new
             {
                 nome = song.Name,
                 idResource = song.AudioReference._id,
@@ -110,7 +110,7 @@ namespace RestServer.Controllers
                 autoral = song.Original,
                 autorizadoRadio = song.RadioAuthorized
             });
-            userObj.habilidades = musician.InstrumentSkills?.ToDictionary(kv => EnumExtensions.GetAttribute<DisplayAttribute>(kv.Key).Name, kv => (int)kv.Value);
+            userObj.usuario.habilidades = musician.InstrumentSkills?.ToDictionary(kv => EnumExtensions.GetAttribute<DisplayAttribute>(kv.Key).Name, kv => (int)kv.Value);
         }
 
         [HttpGet("me")]
