@@ -19,13 +19,13 @@ namespace RestServer.Util
         {
             var confirmationCollection = mongoWrapper.Database.GetCollection<ReferenceToken>(typeof(ReferenceToken).Name);
 
-            var tokenTask = GenerateRandomToken();
+            var tokenTask = GeneralUtils.GenerateRandomBase64();
 
             string token = await tokenTask;
 
             ReferenceToken confirmation = new ReferenceToken()
             {
-                User = user,
+                UserId = user._id,
                 TokenType = TokenType.Confirmation,
                 _id = token,
             };
@@ -48,13 +48,13 @@ namespace RestServer.Util
         {
             var confirmationCollection = mongoWrapper.Database.GetCollection<ReferenceToken>(typeof(ReferenceToken).Name);
 
-            var tokenTask = GenerateRandomToken();
+            var tokenTask = GeneralUtils.GenerateRandomBase64();
 
             string token = await tokenTask;
 
             ReferenceToken confirmation = new ReferenceToken()
             {
-                User = user,
+                UserId = user._id,
                 TokenType = TokenType.PasswordRecovery,
                 _id = token,
             };
@@ -108,14 +108,6 @@ namespace RestServer.Util
             }
 
             await client.SendMailAsync(mailMessage);
-        }
-
-        private static async Task<string> GenerateRandomToken()
-        {
-            byte[] tokenBytes = new byte[512];
-            await Task.Run(() => new RNGCryptoServiceProvider().GetBytes(tokenBytes));
-            string token = Convert.ToBase64String(tokenBytes);
-            return token;
         }
     }
 }

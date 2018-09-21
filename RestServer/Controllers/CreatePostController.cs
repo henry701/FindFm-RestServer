@@ -1,15 +1,22 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Models;
+using MongoDB.Bson;
 using RestServer.Model.Config;
+using RestServer.Model.Http.Request;
+using RestServer.Model.Http.Response;
 using RestServer.Util;
+using RestServer.Util.Extensions;
 
 namespace RestServer.Controllers
 {
-    [Route("/example")]
+    [Route("/post/create")]
     [Controller]
     internal sealed class CreatePostController : ControllerBase
     {
@@ -22,36 +29,41 @@ namespace RestServer.Controllers
             Logger.LogTrace($"{nameof(CreatePostController)} Constructor Invoked");
             MongoWrapper = mongoWrapper;
         }
-
-        [AllowAnonymous]
-        [HttpGet]
-        public async Task<IEnumerable<string>> Get()
-        {
-            return await Task.Run(() => new[] { "value1", "value2" });
-        }
-
-        [HttpGet("{id}")]
-        public async Task<string> Get(int id)
-        {
-            return await Task.Run(() => $"GET value: {id}");
-        }
-
+        
         [HttpPost]
-        public async Task<string> Post([FromBody]string value)
+        public async Task<dynamic> Post([FromBody] CreatePostRequest requestBody)
         {
-            return await Task.Run(() => $"POST value: {value}");
-        }
+            var fileReference = await GeneralUtils.ConsumeReferenceTokenFile(
+                MongoWrapper,
+                requestBody.MediaId,
+                new ObjectId(this.GetCurrentUserId())
+            );
+            
+            var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
+            
+            var creationDate = DateTime.UtcNow;
+            var post = new Post
+            {
+                _id = ObjectId.GenerateNewId(),
+                Title = requestBody.Titulo,
+                Text = requestBody.Descricao,
+                FileReferences = new List<FileReference>()
+                {
+                     fileReference
+                },
+                Ip = HttpContext.Connection.RemoteIpAddress,
+                Poster = null, // TODO, some fields from current user
+            };
 
-        [HttpPut("{id}")]
-        public async void Put(int id, [FromBody]string value)
-        {
-            await Task.Run(() => Thread.Sleep(1000));
-        }
+            await postCollection.InsertOneAsync(post);
 
-        [HttpDelete("{id}")]
-        public async void Delete(int id)
-        {
-            await Task.Run(() => Thread.Sleep(1000));
+            return new ResponseBody
+            {
+                Code = ResponseCode.GenericSuccess,
+                Data = post._id,
+                Message = "Postagem criada com sucesso!",
+                Success = true
+            };
         }
     }
 }

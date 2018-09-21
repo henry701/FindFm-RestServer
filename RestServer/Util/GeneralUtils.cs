@@ -10,6 +10,10 @@ using System.Linq;
 using System.Text;
 using MongoDB.Driver;
 using Models;
+using MongoDB.Bson;
+using RestServer.Exceptions;
+using MongoDB.Driver.GridFS;
+using MongoDB.Bson.Serialization;
 
 namespace RestServer.Util
 {
@@ -52,6 +56,14 @@ namespace RestServer.Util
             return new string(chars);
         }
 
+        public static async Task<string> GenerateRandomBase64(int byteLength = 512)
+        {
+            byte[] tokenBytes = new byte[byteLength];
+            await Task.Run(() => new RNGCryptoServiceProvider().GetBytes(tokenBytes));
+            string token = Convert.ToBase64String(tokenBytes);
+            return token;
+        }
+
         public static ServerConfiguration ReadConfiguration(string path)
         {
             string realPath = path ?? Environment.GetEnvironmentVariable("REST_SRV_CONFIG_PATH") ?? "config.json";
@@ -68,6 +80,59 @@ namespace RestServer.Util
                 throw new ApplicationException("Error while reading configuration data", e);
             }
             return config;
+        }
+
+        public static async Task<FileReference> ConsumeReferenceTokenFile(MongoWrapper mongoWrapper, string tokenId, ObjectId userId)
+        {
+            var tokenCollection = mongoWrapper.Database.GetCollection<ReferenceToken>(nameof(ReferenceToken));
+
+            var tokenFilterBuilder = new FilterDefinitionBuilder<ReferenceToken>();
+            var tokenFilter = tokenFilterBuilder.And(
+                GeneralUtils.NotDeactivated(tokenFilterBuilder),
+                tokenFilterBuilder.Eq(t => t._id, tokenId),
+                tokenFilterBuilder.Eq(t => t.UserId, userId)
+            );
+
+            // TODO: Find and update, desativar o token por segurança
+            DataReferenceToken<ObjectId> token = (await tokenCollection.FindAsync(tokenFilter, new FindOptions<ReferenceToken, DataReferenceToken<ObjectId>>
+            {
+                AllowPartialResults = false,
+                Limit = 1,
+            })).SingleOrDefault();
+
+            if (token == null)
+            {
+                throw new ValidationException("Arquivo não encontrado para persistência!");
+            }
+
+            var gridFsFileId = token.AdditionalData;
+
+            var gridFsBucket = new GridFSBucket<ObjectId>(mongoWrapper.Database);
+
+            var fileFilterBuilder = new FilterDefinitionBuilder<GridFSFileInfo<ObjectId>>();
+            var fileFilter = fileFilterBuilder.Eq(finfo => finfo.Id, gridFsFileId);
+
+            var fileInfo = (await gridFsBucket.FindAsync(fileFilter, new GridFSFindOptions<ObjectId>
+            {
+                Limit = 1,
+            })).SingleOrDefault();
+
+            if(fileInfo == null)
+            {
+                throw new ApplicationException("Arquivo não encontrado, mas havia um token ativado referenciando-o!");
+            }
+
+            var fileReference = new FileReference
+            {
+                FileMetadata = BsonSerializer.Deserialize<FileMetadata>(fileInfo.Metadata),
+                _id = gridFsFileId
+            };
+
+            var fileReferenceCollection = mongoWrapper.Database.GetCollection<FileReference>(nameof(FileReference));
+
+            await fileReferenceCollection.InsertOneAsync(fileReference);
+
+            return fileReference;
         }
     }
 }

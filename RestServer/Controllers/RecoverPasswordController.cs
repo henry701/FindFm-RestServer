@@ -77,7 +77,7 @@ namespace RestServer.Controllers
             var userFilterBuilder = new FilterDefinitionBuilder<User>();
             var userFilter = userFilterBuilder.And
             (
-                userFilterBuilder.Eq(user => user._id, oldConfirmation.User._id),
+                userFilterBuilder.Eq(user => user._id, oldConfirmation.UserId),
                 GeneralUtils.NotDeactivated(userFilterBuilder)
             );
 
