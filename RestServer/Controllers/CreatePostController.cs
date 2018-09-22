@@ -33,24 +33,41 @@ namespace RestServer.Controllers
         [HttpPost]
         public async Task<dynamic> Post([FromBody] CreatePostRequest requestBody)
         {
-            var fileReference = await GeneralUtils.ConsumeReferenceTokenFile(
-                MongoWrapper,
-                requestBody.MediaId,
-                new ObjectId(this.GetCurrentUserId())
-            );
-            
+            FileReference fileReference_Imagem = null;
+            FileReference fileReference_Video = null;
+            if (requestBody.imagemId != null)
+            {
+                fileReference_Imagem = await GeneralUtils.ConsumeReferenceTokenFile(
+                    MongoWrapper,
+                    requestBody.imagemId,
+                    new ObjectId(this.GetCurrentUserId())
+                );
+            }
+
+            if (requestBody.videoId != null)
+            {
+                fileReference_Video = await GeneralUtils.ConsumeReferenceTokenFile(
+                    MongoWrapper,
+                    requestBody.videoId,
+                    new ObjectId(this.GetCurrentUserId())
+                );
+            }
             var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
             
             var creationDate = DateTime.UtcNow;
+            //TODO: settar o autor man
             var post = new Post
             {
                 _id = ObjectId.GenerateNewId(),
+                date = creationDate,
                 Title = requestBody.Titulo,
                 Text = requestBody.Descricao,
                 FileReferences = new List<FileReference>()
                 {
-                     fileReference
+                     fileReference_Imagem,
+                     fileReference_Video
                 },
+
                 Ip = HttpContext.Connection.RemoteIpAddress,
                 Poster = null, // TODO, some fields from current user
             };
