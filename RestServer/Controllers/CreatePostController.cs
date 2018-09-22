@@ -55,11 +55,10 @@ namespace RestServer.Controllers
             var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
             
             var creationDate = DateTime.UtcNow;
-            //TODO: settar o autor man
+            
             var post = new Post
             {
-                _id = ObjectId.GenerateNewId(),
-                date = creationDate,
+                _id = ObjectId.GenerateNewId(creationDate),
                 Title = requestBody.Titulo,
                 Text = requestBody.Descricao,
                 FileReferences = new List<FileReference>()
@@ -67,8 +66,8 @@ namespace RestServer.Controllers
                      fileReference_Imagem,
                      fileReference_Video
                 },
-
                 Ip = HttpContext.Connection.RemoteIpAddress,
+                //TODO: settar o autor man
                 Poster = null, // TODO, some fields from current user
             };
 
