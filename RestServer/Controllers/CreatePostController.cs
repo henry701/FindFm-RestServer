@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
@@ -13,6 +14,7 @@ using RestServer.Model.Http.Request;
 using RestServer.Model.Http.Response;
 using RestServer.Util;
 using RestServer.Util.Extensions;
+using MongoDB.Driver;
 
 namespace RestServer.Controllers
 {
@@ -33,11 +35,35 @@ namespace RestServer.Controllers
         [HttpPost]
         public async Task<dynamic> Post([FromBody] CreatePostRequest requestBody)
         {
-            FileReference fileReference_Imagem = null;
-            FileReference fileReference_Video = null;
+            var userId = new ObjectId(this.GetCurrentUserId());
+
+            var userCollection = MongoWrapper.Database.GetCollection<Musician>(nameof(User));
+
+            var userFilterBuilder = new FilterDefinitionBuilder<Musician>();
+            var userFilter = userFilterBuilder.And(
+                GeneralUtils.NotDeactivated(userFilterBuilder),
+                userFilterBuilder.Eq(user => user._id, userId)
+            );
+
+            var userProjectionBuilder = new ProjectionDefinitionBuilder<Musician>();
+            var userProjection = userProjectionBuilder
+                .Include(m => m._id)
+                .Include(m => m.FullName)
+                .Include(m => m.Avatar)
+                .Include("_t");
+
+            var userTask = userCollection.FindAsync(userFilter, new FindOptions<Musician>
+            {
+                Limit = 1,
+                AllowPartialResults = false,
+                Projection = userProjection
+            });
+
+            Task<FileReference> fileReference_Imagem = null;
+            Task<FileReference> fileReference_Video = null;
             if (requestBody.imagemId != null)
             {
-                fileReference_Imagem = await GeneralUtils.ConsumeReferenceTokenFile(
+                fileReference_Imagem = GeneralUtils.ConsumeReferenceTokenFile(
                     MongoWrapper,
                     requestBody.imagemId,
                     new ObjectId(this.GetCurrentUserId())
@@ -46,29 +72,29 @@ namespace RestServer.Controllers
 
             if (requestBody.videoId != null)
             {
-                fileReference_Video = await GeneralUtils.ConsumeReferenceTokenFile(
+                fileReference_Video = GeneralUtils.ConsumeReferenceTokenFile(
                     MongoWrapper,
                     requestBody.videoId,
                     new ObjectId(this.GetCurrentUserId())
                 );
             }
+
             var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
-            
+
             var creationDate = DateTime.UtcNow;
-            
+
             var post = new Post
             {
                 _id = ObjectId.GenerateNewId(creationDate),
                 Title = requestBody.Titulo,
                 Text = requestBody.Descricao,
-                FileReferences = new List<FileReference>()
+                FileReferences = new FileReference[]
                 {
-                     fileReference_Imagem,
-                     fileReference_Video
-                },
+                     await fileReference_Imagem,
+                     await fileReference_Video
+                }.Where(fr => fr != null).ToList(),
                 Ip = HttpContext.Connection.RemoteIpAddress,
-                //TODO: settar o autor man
-                Poster = null, // TODO, some fields from current user
+                Poster = (await userTask).Single()
             };
 
             await postCollection.InsertOneAsync(post);

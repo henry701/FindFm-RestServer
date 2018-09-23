@@ -93,12 +93,17 @@ namespace RestServer.Util
                 tokenFilterBuilder.Eq(t => t.UserId, userId)
             );
 
-            // TODO: Find and update, desativar o token por segurança
-            DataReferenceToken<ObjectId> token = (await tokenCollection.FindAsync(tokenFilter, new FindOptions<ReferenceToken, DataReferenceToken<ObjectId>>
-            {
-                AllowPartialResults = false,
-                Limit = 1,
-            })).SingleOrDefault();
+            var tokenUpdateBuilder = new UpdateDefinitionBuilder<ReferenceToken>();
+            var tokenUpdate = tokenUpdateBuilder.Set(t => t.DeactivationDate, DateTime.UtcNow);
+
+            DataReferenceToken<ObjectId> token = await tokenCollection.FindOneAndUpdateAsync(
+                tokenFilter,
+                tokenUpdate,
+                new FindOneAndUpdateOptions<ReferenceToken, DataReferenceToken<ObjectId>>
+                {
+                    ReturnDocument = ReturnDocument.Before,
+                }
+            );
 
             if (token == null)
             {
