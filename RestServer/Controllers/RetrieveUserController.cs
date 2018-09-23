@@ -96,12 +96,6 @@ namespace RestServer.Controllers
 
         private static void IncrementMusicianObject(Musician musician, dynamic userObj)
         {
-            //Da um erro mesmo quando o cara nao tem musicas
-            /*
-             RuntimeBinderException: '<>f__AnonymousType5<<>f__AnonymousType6<<>f__AnonymousType7<string,string,string,string>,Models.ImageReference,string,string,Models.PhoneNumber,string>>' 
-             does not contain a definition for 'musicas'
-             */
-             
             userObj.usuario.musicas = musician.Songs?.Where(s => s != null).Select(song => new
             {
                 nome = song.Name,
