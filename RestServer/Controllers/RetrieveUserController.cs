@@ -72,6 +72,7 @@ namespace RestServer.Controllers
         {
             dynamic userObj = new ExpandoObject();
             userObj.usuario = new ExpandoObject();
+            userObj.usuario.id = user._id;
             userObj.usuario.endereco = new
                 {
                     estado = EnumExtensions.GetAttribute<DisplayAttribute>(user.Address.State).Name,
