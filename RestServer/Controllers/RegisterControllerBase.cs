@@ -49,27 +49,33 @@ namespace RestServer.Controllers
 
             var user = await BindUser(requestBody, creationDate);
 
-            using (var session = await MongoWrapper.MongoClient.StartSessionAsync())
+            var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database);
+
+            Task photoTask = this.UploadPhoto(requestBody.Foto, gridFsBucket, user, creationDate);
+
+            var insertTask = userCollection.InsertOneAsync(user);
+
+            try
             {
-                session.StartTransaction();
-
-                Task photoTask = this.UploadPhoto(requestBody.Foto, new GridFSBucket<ObjectId>(MongoWrapper.Database), user, creationDate);
-
-                var insertTask = userCollection.InsertOneAsync(session, user);
-
+                await insertTask;
+            }
+            catch (Exception e)
+            {
+                Logger.LogError("Error while registering user", e);
                 try
                 {
-                    await insertTask;
                     await photoTask;
+                    ObjectId? photoId = user?.Avatar?._id;
+                    if(photoId.HasValue)
+                    {
+                        var deleteLingeringPhotoTask = gridFsBucket.DeleteAsync(photoId.Value);
+                    }
                 }
-                catch (Exception e)
+                catch
                 {
-                    Logger.LogError("Error while registering user", e);
-                    await session.AbortTransactionAsync();
-                    throw;
+                    // Ignore, no need to erase photo or log anything: User's insert has failed anyways.
                 }
-
-                await session.CommitTransactionAsync();
+                throw;
             }
 
             // Não esperamos o e-mail ser enviado, apenas disparamos. Caso não tenha sido enviado vai ter um botão na home depois enchendo o saco pro usuário confirmar o e-mail dele.
