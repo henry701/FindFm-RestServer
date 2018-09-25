@@ -44,7 +44,7 @@ namespace RestServer.Controllers
                 return new FileStreamResult(downloadStream, contentType)
                 {
                     EnableRangeProcessing = true,
-                    EntityTag = Microsoft.Net.Http.Headers.EntityTagHeaderValue.Parse(downloadStream.FileInfo.MD5)
+                    EntityTag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue(downloadStream.FileInfo.MD5)
                 };
             }
             catch(GridFSFileNotFoundException)
