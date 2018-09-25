@@ -7,6 +7,7 @@ using Models;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver.GridFS;
+using RestServer.Model.Http.Response;
 using RestServer.Util;
 
 namespace RestServer.Controllers
@@ -27,11 +28,34 @@ namespace RestServer.Controllers
         [AllowAnonymous]
         public async Task<dynamic> Get([FromRoute] string id)
         {
-            var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database);
-            var downloadStream = await gridFsBucket.OpenDownloadStreamAsync(new ObjectId(id));
-            var fileMetadata = BsonSerializer.Deserialize<FileMetadata>(downloadStream.FileInfo.Metadata);
-            string contentType = string.IsNullOrWhiteSpace(fileMetadata.ContentType) ? "application/octet-stream" : fileMetadata.ContentType;
-            return new FileStreamResult(downloadStream, contentType);
+            try
+            {
+                var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database);
+                var downloadStream = await gridFsBucket.OpenDownloadStreamAsync(
+                    new ObjectId(id),
+                    new GridFSDownloadOptions
+                    {
+                        Seekable = true,
+                        CheckMD5 = true
+                    }
+                );
+                var fileMetadata = BsonSerializer.Deserialize<FileMetadata>(downloadStream.FileInfo.Metadata);
+                string contentType = string.IsNullOrWhiteSpace(fileMetadata.ContentType) ? "application/octet-stream" : fileMetadata.ContentType;
+                return new FileStreamResult(downloadStream, contentType)
+                {
+                    EnableRangeProcessing = true,
+                    EntityTag = Microsoft.Net.Http.Headers.EntityTagHeaderValue.Parse(downloadStream.FileInfo.MD5)
+                };
+            }
+            catch(GridFSFileNotFoundException)
+            {
+                return new ResponseBody
+                {
+                    Code = ResponseCode.NotFound,
+                    Message = "Arquivo não foi encontrado!",
+                    Success = false
+                };
+            }
         }
     }
 }

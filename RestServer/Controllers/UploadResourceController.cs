@@ -35,6 +35,7 @@ namespace RestServer.Controllers
 
         [AllowAnonymous]
         [HttpPut]
+        [RequestSizeLimit(100_000_000)]
         public async Task<dynamic> Put()
         {
             var contentType = Request.Headers["Content-Type"];
@@ -62,7 +63,7 @@ namespace RestServer.Controllers
 
             var confirmationCollection = MongoWrapper.Database.GetCollection<ReferenceToken>(typeof(ReferenceToken).Name);
 
-            var generatedToken = await GeneralUtils.GenerateRandomBase64();
+            var generatedToken = await GeneralUtils.GenerateRandomBase64(256);
 
             var token = new DataReferenceToken<ObjectId>()
             {
@@ -106,19 +107,21 @@ namespace RestServer.Controllers
             };
         }
 
-        private static FileType? FileTypeFromMime(StringValues contentType)
+        private static FileType? FileTypeFromMime(string contentType)
         {
-            switch (contentType)
+            if(contentType.StartsWith("image", StringComparison.OrdinalIgnoreCase))
             {
-                case "image/jpeg":
-                    return FileType.Image;
-                case "audio/mpeg":
-                    return FileType.Audio;
-                case "video/mpeg":
-                    return FileType.Video;
-                default:
-                    return null;
+                return FileType.Image;
             }
+            if (contentType.StartsWith("audio", StringComparison.OrdinalIgnoreCase))
+            {
+                return FileType.Audio;
+            }
+            if (contentType.StartsWith("video", StringComparison.OrdinalIgnoreCase))
+            {
+                return FileType.Video;
+            }
+            return null;
         }
     }
 }
