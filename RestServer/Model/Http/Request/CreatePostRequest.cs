@@ -14,9 +14,9 @@ namespace RestServer.Model.Http.Request
         [Required]
         public string Descricao { get; set; }
         [Required]
-        public string imagemId { get; set; }
+        public string ImagemId { get; set; }
         [Required]
-        public string videoId { get; set; }
+        public string VideoId { get; set; }
 
     }
 }

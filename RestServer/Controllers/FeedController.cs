@@ -40,7 +40,7 @@ namespace RestServer.Controllers
             {
                 Code = ResponseCode.GenericSuccess,
                 Success = true,
-                Message = "",
+                Message = "Feed atualizado com sucesso!",
                 Data = new
                 {
                     postagens = posts,

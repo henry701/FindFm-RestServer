@@ -16,7 +16,7 @@ namespace RestServer.Controllers
 {
     [Route("/register/contractor")]
     [Controller]
-    internal sealed class RegisterContractorController : RegisterControllerBase<RegisterContractorRequest>
+    internal sealed class RegisterContractorController : RegisterUserControllerBase<RegisterContractorRequest>
     {
         public RegisterContractorController(MongoWrapper mongoWrapper, SmtpConfiguration smtpConfiguration, TokenConfigurations tokenConfigurations, SigningConfigurations signingConfigurations, ILogger<RegisterContractorController> logger) : base(mongoWrapper, smtpConfiguration, tokenConfigurations, signingConfigurations, logger)
         {

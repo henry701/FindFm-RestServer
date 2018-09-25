@@ -22,8 +22,7 @@ namespace RestServer.Controllers
     {
         private readonly ILogger<RetrievePostController> Logger;
         private readonly MongoWrapper MongoWrapper;
-        private readonly ServerInfo ServerInfo;
-
+   
         public RetrievePostController(MongoWrapper mongoWrapper, ILogger<RetrievePostController> logger)
         {
             Logger = logger;

@@ -18,7 +18,7 @@ namespace RestServer.Controllers
 {
     [Route("/register/musician")]
     [Controller]
-    internal sealed class RegisterMusicianController : RegisterControllerBase<RegisterMusicianRequest>
+    internal sealed class RegisterMusicianController : RegisterUserControllerBase<RegisterMusicianRequest>
     {
         public RegisterMusicianController(MongoWrapper mongoWrapper, SmtpConfiguration smtpConfiguration, TokenConfigurations tokenConfigurations, SigningConfigurations signingConfigurations, ILogger<RegisterMusicianController> logger) : base(mongoWrapper, smtpConfiguration, tokenConfigurations, signingConfigurations, logger)
         {

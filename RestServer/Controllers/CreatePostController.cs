@@ -59,22 +59,22 @@ namespace RestServer.Controllers
                 Projection = userProjection
             });
 
-            Task<FileReference> fileReference_Imagem = null;
-            Task<FileReference> fileReference_Video = null;
-            if (requestBody.imagemId != null)
+            Task<FileReference> fileReference_Imagem = Task.FromResult<FileReference>(null);
+            Task<FileReference> fileReference_Video = Task.FromResult<FileReference>(null);
+            if (requestBody.ImagemId != null)
             {
                 fileReference_Imagem = GeneralUtils.ConsumeReferenceTokenFile(
                     MongoWrapper,
-                    requestBody.imagemId,
+                    requestBody.ImagemId,
                     new ObjectId(this.GetCurrentUserId())
                 );
             }
 
-            if (requestBody.videoId != null)
+            if (requestBody.VideoId != null)
             {
                 fileReference_Video = GeneralUtils.ConsumeReferenceTokenFile(
                     MongoWrapper,
-                    requestBody.videoId,
+                    requestBody.VideoId,
                     new ObjectId(this.GetCurrentUserId())
                 );
             }

@@ -22,7 +22,6 @@ namespace RestServer.Controllers
     {
         private readonly ILogger<RetrieveUserController> Logger;
         private readonly MongoWrapper MongoWrapper;
-        private readonly ServerInfo ServerInfo;
 
         public RetrieveUserController(MongoWrapper mongoWrapper, ILogger<RetrieveUserController> logger)
         {
@@ -142,7 +141,7 @@ namespace RestServer.Controllers
             responseBody.Code = ResponseCode.GenericSuccess;
             responseBody.Success = true;
             responseBody.Message = "Usuário encontrado com sucesso!";
-            responseBody.Data = responseBody.Data = BuildUserObject(user);
+            responseBody.Data = BuildUserObject(user);
 
             return responseBody;
         }

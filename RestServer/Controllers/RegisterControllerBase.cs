@@ -16,18 +16,18 @@ using RestServer.Util.Extensions;
 
 namespace RestServer.Controllers
 {
-    internal abstract class RegisterControllerBase<TBody> : ControllerBase where TBody : IBasicRegisterBody
+    internal abstract class RegisterUserControllerBase<TBody> : ControllerBase where TBody : IBasicRegisterBody
     {
-        private readonly ILogger<RegisterControllerBase<TBody>> Logger;
+        private readonly ILogger<RegisterUserControllerBase<TBody>> Logger;
         private readonly MongoWrapper MongoWrapper;
         private readonly SmtpConfiguration SmtpConfiguration;
         private readonly TokenConfigurations TokenConfigurations;
         private readonly SigningConfigurations SigningConfigurations;
 
-        public RegisterControllerBase(MongoWrapper mongoWrapper, SmtpConfiguration smtpConfiguration, TokenConfigurations tokenConfigurations, SigningConfigurations signingConfigurations, ILogger<RegisterControllerBase<TBody>> logger)
+        public RegisterUserControllerBase(MongoWrapper mongoWrapper, SmtpConfiguration smtpConfiguration, TokenConfigurations tokenConfigurations, SigningConfigurations signingConfigurations, ILogger<RegisterUserControllerBase<TBody>> logger)
         {
             Logger = logger;
-            Logger.LogTrace($"{nameof(RegisterControllerBase<TBody>)} Constructor Invoked");
+            Logger.LogTrace($"{nameof(RegisterUserControllerBase<TBody>)} Constructor Invoked");
             MongoWrapper = mongoWrapper;
             SmtpConfiguration = smtpConfiguration;
             TokenConfigurations = tokenConfigurations;
