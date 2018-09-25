@@ -36,7 +36,7 @@ namespace RestServer.Controllers
                     new GridFSDownloadOptions
                     {
                         Seekable = true,
-                        CheckMD5 = true
+                        CheckMD5 = false
                     }
                 );
                 var fileMetadata = BsonSerializer.Deserialize<FileMetadata>(downloadStream.FileInfo.Metadata);
