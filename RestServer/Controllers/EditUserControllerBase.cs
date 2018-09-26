@@ -37,7 +37,7 @@ namespace RestServer.Controllers
 
             DateTime creationDate = DateTime.UtcNow;
 
-            var newUserTask = this.BindUser(requestBody, creationDate);
+            var newUserTask = BindUser(requestBody, creationDate);
 
             var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(User));
 
@@ -48,45 +48,55 @@ namespace RestServer.Controllers
                 GeneralUtils.NotDeactivated(userFilterBuilder)
             );
 
+            var oldUser = (await userCollection.FindAsync(userFilter)).SingleOrDefault();
+
             var newUser = await newUserTask;
+            var userUpdate = await CreateUpdateDefinition(oldUser, newUser);
 
-            var userUpdateBuilder = new UpdateDefinitionBuilder<User>();
-            var userUpdate = userUpdateBuilder
-                .Set(u => u.Address, newUser.Address)
-                .Set(u => u.Email, newUser.Email)
-                .Set(u => u.EmailConfirmed, false)
-                .Set(u => u.FullName, newUser.FullName)
-                .Set(u => u.Password, newUser.Password)
-                .Set(u => u.Phone, newUser.Phone)
-                .Set(u => u.Avatar, newUser.Avatar);
-
-            var user = await userCollection.FindOneAndUpdateAsync(userFilter, userUpdate, new FindOneAndUpdateOptions<User>
+            if (oldUser.Email != oldUser.Email)
             {
-                ReturnDocument = ReturnDocument.Before
-            });
+                userUpdate = userUpdate.Set(u => u.EmailConfirmed, false);
+            }
 
-            var responseBody = new ResponseBody();
+            var userUpdateResult = await userCollection.UpdateOneAsync(userFilter, userUpdate);
 
-            if (user == null)
+            if (oldUser == null)
             {
                 Logger.LogError("User with valid JWT id was not found in database! Id: {}", id);
-                responseBody.Code = ResponseCode.NotFound;
-                responseBody.Success = false;
-                responseBody.Message = "Seu usuário não foi encontrado!";
-                Response.StatusCode = (int) HttpStatusCode.InternalServerError;
-                return responseBody;
+                Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                return new ResponseBody
+                {
+                    Code = ResponseCode.NotFound,
+                    Success = false,
+                    Message = "Seu usuário não foi encontrado!",
+                };
             }
 
             // TODO: Editar todos os posts daquele usuário com o nome e avatar novo
 
-            responseBody.Code = ResponseCode.GenericSuccess;
-            responseBody.Success = true;
-            responseBody.Message = "Usuário editado com sucesso!";
-
-            return responseBody;
+            return new ResponseBody
+            {
+                Code = ResponseCode.GenericSuccess,
+                Success = true,
+                Message = "Usuário editado com sucesso!",
+            };
         }
 
         protected abstract Task<User> BindUser(TBody requestBody, DateTime creationDate);
+
+        protected abstract Task<UpdateDefinition<User>> CreateUpdateDefinition(User oldUser, User newUser);
+        /*
+        var userUpdateBuilder = new UpdateDefinitionBuilder<User>();
+        var userUpdate = userUpdateBuilder
+            .Set(u => u.Address, newUser.Address)
+            .Set(u => u.Avatar, newUser.Avatar)
+            .Set(u => u.StartDate, newUser.StartDate)
+            .Set(u => u.Email, newUser.Email)
+            .Set(u => u.FullName, newUser.FullName)
+            .Set(u => u.Password, newUser.Password)
+            .Set(u => u.Phone, newUser.Phone)
+            .Set(u => u.Avatar, newUser.Avatar);
+        */
     }
 }
  

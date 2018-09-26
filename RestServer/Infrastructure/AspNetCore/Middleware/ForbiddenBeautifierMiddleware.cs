@@ -20,17 +20,22 @@ namespace RestServer.Infrastructure.AspNetCore.Middleware
         public async Task InvokeAsync(HttpContext context)
         {
             await Next(context);
-            if(context.Response.HasStarted)
-            {
-                Logger.LogWarning("Attempted to write Forbidden response, but response has already started");
-                return;
-            }
             if(context.Response.StatusCode == (int) HttpStatusCode.Forbidden)
             {
+                if (context.Response.HasStarted)
+                {
+                    Logger.LogWarning("Attempted to write Forbidden response, but response has already started");
+                    return;
+                }
                 await context.WriteResultAsync(new ForbiddenResult());
             }
             else if (context.Response.StatusCode == (int) HttpStatusCode.Unauthorized)
             {
+                if (context.Response.HasStarted)
+                {
+                    Logger.LogWarning("Attempted to write Forbidden response, but response has already started");
+                    return;
+                }
                 await context.WriteResultAsync(new UnauthorizedResult());
             }
         }

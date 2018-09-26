@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
+using Microsoft.Net.Http.Headers;
 using Models;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -28,6 +32,8 @@ namespace RestServer.Controllers
         [AllowAnonymous]
         public async Task<dynamic> Get([FromRoute] string id)
         {
+            Request.Headers.TryGetValue("If-None-Match", out StringValues clientEtag);
+            string clientEtagStr = clientEtag.Count > 0 ? clientEtag.ToString() : null;
             try
             {
                 var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database);
@@ -39,12 +45,19 @@ namespace RestServer.Controllers
                         CheckMD5 = false
                     }
                 );
+                if(downloadStream.FileInfo.MD5.Equals(clientEtagStr.Trim('"'), StringComparison.Ordinal))
+                {
+                    Response.StatusCode = (int) HttpStatusCode.NotModified;
+                    return new EmptyResult();
+                }
                 var fileMetadata = BsonSerializer.Deserialize<FileMetadata>(downloadStream.FileInfo.Metadata);
-                string contentType = string.IsNullOrWhiteSpace(fileMetadata.ContentType) ? "application/octet-stream" : fileMetadata.ContentType;
+                string contentType = string.IsNullOrWhiteSpace(fileMetadata.ContentType)
+                                     ? "application/octet-stream" : fileMetadata.ContentType;
+                Response.GetTypedHeaders().CacheControl = CacheControlHeaderValue.Parse(CacheControlHeaderValue.NoCacheString);
                 return new FileStreamResult(downloadStream, contentType)
                 {
                     EnableRangeProcessing = true,
-                    EntityTag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue("\"" + downloadStream.FileInfo.MD5 + "\"")
+                    EntityTag = new EntityTagHeaderValue("\"" + downloadStream.FileInfo.MD5 + "\"")
                 };
             }
             catch(GridFSFileNotFoundException)
