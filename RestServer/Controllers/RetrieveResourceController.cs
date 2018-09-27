@@ -45,10 +45,13 @@ namespace RestServer.Controllers
                         CheckMD5 = false
                     }
                 );
-                if(downloadStream.FileInfo.MD5.Equals(clientEtagStr.Trim('"'), StringComparison.Ordinal))
+                if (clientEtagStr != null)
                 {
-                    Response.StatusCode = (int) HttpStatusCode.NotModified;
-                    return new EmptyResult();
+                    if (downloadStream.FileInfo.MD5.Equals(clientEtagStr.Trim('"'), StringComparison.Ordinal))
+                    {
+                        Response.StatusCode = (int)HttpStatusCode.NotModified;
+                        return new EmptyResult();
+                    }
                 }
                 var fileMetadata = BsonSerializer.Deserialize<FileMetadata>(downloadStream.FileInfo.Metadata);
                 string contentType = string.IsNullOrWhiteSpace(fileMetadata.ContentType)
