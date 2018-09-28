@@ -103,6 +103,7 @@ namespace RestServer.Controllers
                 Descricao = post.Text,
                 Autor = post.Poster,
                 Likes = (int) post.Likes,
+                Criacao = post.CreationDate,
                 Midias = post.FileReferences.Select
                     (
                         fr => new
