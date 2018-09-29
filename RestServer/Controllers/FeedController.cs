@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -31,8 +32,8 @@ namespace RestServer.Controllers
         [HttpGet]
         public async Task<dynamic> Get()
         {
-            Task<IAsyncCursor<MetascoredPost>> postsTask = FetchPosts();
-            Task<IAsyncCursor<MetascoredAdvertisement>> adsTask = FetchAds();
+            var postsTask = FetchPosts();
+            var adsTask = FetchAds();
 
             var posts = await postsTask;
             var ads = await adsTask;
@@ -44,13 +45,13 @@ namespace RestServer.Controllers
                 Message = "Feed atualizado com sucesso!",
                 Data = new
                 {
-                    postagens = posts,
+                    postagens = posts.Select(RetrievePostController.BuildPostResponse),
                     anuncios = ads,
                 }
             };
         }
 
-        private Task<IAsyncCursor<MetascoredPost>> FetchPosts()
+        private async Task<IEnumerable<MetascoredPost>> FetchPosts()
         {
             var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
 
@@ -82,17 +83,17 @@ namespace RestServer.Controllers
                 postSortBuilder.MetaTextScore(nameof(MetascoredPost.MetaScore))
             );
 
-            var postsTask = postCollection.FindAsync(postFilter, new FindOptions<Post, MetascoredPost>
+            var postsTask = await postCollection.FindAsync(postFilter, new FindOptions<Post, MetascoredPost>
             {
                 AllowPartialResults = true,
                 Limit = 10,
                 Sort = postSort,
                 Projection = postProjection
             });
-            return postsTask;
+            return postsTask.ToEnumerable();
         }
 
-        private Task<IAsyncCursor<MetascoredAdvertisement>> FetchAds()
+        private async Task<IEnumerable<MetascoredAdvertisement>> FetchAds()
         {
             var adCollection = MongoWrapper.Database.GetCollection<Advertisement>(nameof(Advertisement));
 
@@ -122,14 +123,14 @@ namespace RestServer.Controllers
                 adSortBuilder.MetaTextScore(nameof(MetascoredPost.MetaScore))
             );
 
-            var adsTask = adCollection.FindAsync(adFilter, new FindOptions<Advertisement, MetascoredAdvertisement>
+            var adsTask = await adCollection.FindAsync(adFilter, new FindOptions<Advertisement, MetascoredAdvertisement>
             {
                 AllowPartialResults = true,
                 Limit = 1,
                 Sort = adSort,
                 Projection = adProjection
             });
-            return adsTask;
+            return adsTask.ToEnumerable();
         }
 
         private class MetascoredPost : Post

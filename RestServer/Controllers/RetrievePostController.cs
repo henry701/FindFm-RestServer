@@ -95,7 +95,7 @@ namespace RestServer.Controllers
             };
         }
 
-        private static dynamic BuildPostResponse(Post post)
+        public static dynamic BuildPostResponse(Post post)
         {
             return new
             {
