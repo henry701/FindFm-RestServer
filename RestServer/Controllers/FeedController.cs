@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Models;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using RestServer.Model.Config;
 using RestServer.Model.Http.Response;
@@ -72,8 +73,8 @@ namespace RestServer.Controllers
                 DiacriticSensitive = false,
             });
             var postFilter = postFilterBuilder.Gt(
-                post => post._id.CreationTime,
-                DateTime.UtcNow.Subtract(TimeSpan.FromDays(7))
+                post => post._id,
+                new ObjectId(DateTime.UtcNow.Subtract(TimeSpan.FromDays(7)), 0, 0, 0)
             );
 
             var postSortBuilder = new SortDefinitionBuilder<Post>();
@@ -112,8 +113,8 @@ namespace RestServer.Controllers
                 DiacriticSensitive = false,
             });
             var adFilter = adFilterBuilder.Gt(
-                ad => ad._id.CreationTime,
-                DateTime.UtcNow.Subtract(TimeSpan.FromDays(16))
+                ad => ad._id,
+                new ObjectId(DateTime.UtcNow.Subtract(TimeSpan.FromDays(16)), 0, 0, 0)
             );
 
             var adSortBuilder = new SortDefinitionBuilder<Advertisement>();

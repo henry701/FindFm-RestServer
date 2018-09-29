@@ -81,15 +81,13 @@ namespace RestServer.Controllers
 
             var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
 
-            DateTime creationDate = DateTime.UtcNow;
-            //TODO: arrumar isso pro timezone BR
-            creationDate.AddHours(-3);
+            var creationDate = DateTime.UtcNow;
+
             var post = new Post
             {
                 _id = ObjectId.GenerateNewId(creationDate),
                 Title = requestBody.Titulo,
                 Text = requestBody.Descricao,
-                CreationDate = creationDate,
                 FileReferences = new FileReference[]
                 {
                      await fileReference_Imagem,
