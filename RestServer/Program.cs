@@ -20,6 +20,7 @@ using MongoDB.Driver;
 using MongoDB.Bson;
 using MongoDB.Driver.GridFS;
 using LiterCast.AudioSources;
+using System.Collections.Generic;
 
 namespace RestServer
 {
@@ -134,30 +135,57 @@ namespace RestServer
 
         private static Task StartRadioFeeder(RadioCastServer radioCastServer, MongoWrapper mongoWrapper)
         {
-            var songCollection = mongoWrapper.Database.GetCollection<Models.Song>(nameof(Models.Song));
-            var sortBuilder = new SortDefinitionBuilder<Models.Song>();
-            var sort = sortBuilder.Ascending(song => song.TimesPlayed);
-            var filterBuilder = new FilterDefinitionBuilder<Models.Song>();
-            var filter = filterBuilder.And
+            var userCollection = mongoWrapper.Database.GetCollection<Models.Musician>(nameof(Models.User));
+
+            var songSortBuilder = new SortDefinitionBuilder<Models.Song>();
+            var songSort = songSortBuilder.Ascending(s => s.TimesPlayedRadio).Descending(s => s.TimesPlayed);
+
+            var userFilterBuilder = new FilterDefinitionBuilder<Models.Musician>();
+            var userFilter = userFilterBuilder.And
             (
-                GeneralUtils.NotDeactivated(filterBuilder),
-                filterBuilder.Eq(song => song.RadioAuthorized, true),
-                filterBuilder.Eq(song => song.Original, true)
+                GeneralUtils.NotDeactivated(userFilterBuilder),
+                userFilterBuilder.Eq("_t", nameof(Models.Musician))
             );
+
+            var songFilterBuilder = new FilterDefinitionBuilder<Models.Song>();
+            var songFilter = songFilterBuilder.And
+            (
+                GeneralUtils.NotDeactivated(songFilterBuilder),
+                songFilterBuilder.Eq(s => s.RadioAuthorized, true),
+                songFilterBuilder.Eq(s => s.Original, true)
+            );
+
+            var pipeline = PipelineDefinitionBuilder
+                .For<Models.Musician>()
+                .AppendStage(PipelineStageDefinitionBuilder.Match(userFilter))
+                .Unwind(m => m.Songs, new AggregateUnwindOptions<Models.Song>
+                {
+                    PreserveNullAndEmptyArrays = false,
+                    IncludeArrayIndex = null,
+                })
+                .AppendStage(PipelineStageDefinitionBuilder.Match(songFilter))
+                .AppendStage(PipelineStageDefinitionBuilder.Sort(songSort))
+                .AppendStage(PipelineStageDefinitionBuilder.Limit<Models.Song>(1));
+
+            var projectionBuilder = new ProjectionDefinitionBuilder<Models.Musician>();
+            var projection = projectionBuilder.Include(m => m.FullName).Include(m => m.Songs);
+
             var fsBucket = new GridFSBucket<ObjectId>(mongoWrapper.Database);
+
             return Task.Run(async () =>
             {
                 while (true)
                 {
-                    var findTask = songCollection.FindAsync(filter, new FindOptions<Models.Song>
+                    var findTask = userCollection.AggregateAsync(pipeline, new AggregateOptions
                     {
-                        AllowPartialResults = true,
-                        Sort = sort,
-                        Limit = 1
+                        AllowDiskUse = false,
+                        UseCursor = false,
                     });
+
                     var findResult = await findTask;
                     var firstSong = await findResult.SingleOrDefaultAsync();
                     // If no songs, wait a minute before checking again
+                    // Mostly not to strain the CPU on development environments
                     if(firstSong == null)
                     {
                         Thread.Sleep(TimeSpan.FromMinutes(1));
@@ -169,7 +197,8 @@ namespace RestServer
                     // Wait for the radio to need more songs before we add the track
                     SpinWait.SpinUntil(() => radioCastServer.TrackCount <= 1);
                     radioCastServer.AddTrack(new FileAudioSource(await fileStreamTask, firstSong.Name));
-                    // TODO: Increment played count by 1 here and persist to MongoDB, or expose events on RadioCastServer and callback here
+                    // TODO: Increment played count by 1 here and persist to MongoDB, or (better): 
+                    // expose events on RadioCastServer and callback here
                 }
             });
         }

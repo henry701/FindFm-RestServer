@@ -50,13 +50,49 @@ namespace RestServer.Controllers
 
             if (post == null)
             {
-                Response.StatusCode = (int)HttpStatusCode.NotFound;
+                Response.StatusCode = (int) HttpStatusCode.NotFound;
                 return new ResponseBody
                 {
                     Code = ResponseCode.NotFound,
                     Success = false,
                     Message = "Post não encontrado!",
                 };
+            }
+
+            var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(User));
+
+            var userFilterBuilder = new FilterDefinitionBuilder<User>();
+            var userFilter = userFilterBuilder.And
+            (
+                userFilterBuilder.Eq(u => u._id, post.Poster._id),
+                GeneralUtils.NotDeactivated(userFilterBuilder)
+            );
+
+            var userProjectionBuilder = new ProjectionDefinitionBuilder<User>();
+            var userProjection = userProjectionBuilder
+                .Include(m => m._id)
+                .Include(m => m.FullName)
+                .Include(m => m.Avatar)
+                .Include(m => m.Phone)
+                .Include(m => m.StartDate)
+                .Include(m => m.Email)
+                .Include(m => m.Address)
+                .Include("_t");
+
+            var user = (await userCollection.FindAsync(userFilter, new FindOptions<User>
+            {
+                Limit = 1,
+                AllowPartialResults = true,
+                Projection = userProjection
+            })).SingleOrDefault();
+
+            if(user == null)
+            {
+                Logger.LogWarning("Post Author was not found! post id: {}, poster id: {}", post._id, post.Poster._id);
+            }
+            else
+            {
+                post.Poster = user;
             }
 
             return new ResponseBody
@@ -101,7 +137,7 @@ namespace RestServer.Controllers
             {
                 Titulo = post.Title,
                 Descricao = post.Text,
-                Autor = post.Poster,
+                Autor = RetrieveUserController.BuildUserObject(post.Poster),
                 Likes = (int) post.Likes,
                 Criacao = post._id.CreationTime,
                 Midias = post.FileReferences.Select

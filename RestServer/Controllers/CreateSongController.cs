@@ -37,28 +37,6 @@ namespace RestServer.Controllers
         {
             var userId = new ObjectId(this.GetCurrentUserId());
 
-            var userCollection = MongoWrapper.Database.GetCollection<Musician>(nameof(User));
-
-            var userFilterBuilder = new FilterDefinitionBuilder<Musician>();
-            var userFilter = userFilterBuilder.And(
-                GeneralUtils.NotDeactivated(userFilterBuilder),
-                userFilterBuilder.Eq(user => user._id, userId)
-            );
-
-            var userProjectionBuilder = new ProjectionDefinitionBuilder<Musician>();
-            var userProjection = userProjectionBuilder
-                .Include(m => m._id)
-                .Include(m => m.FullName)
-                .Include(m => m.Avatar)
-                .Include("_t");
-
-            var userTask = userCollection.FindAsync(userFilter, new FindOptions<Musician>
-            {
-                Limit = 1,
-                AllowPartialResults = false,
-                Projection = userProjection
-            });
-
             Task<FileReference> fileReferenceTask = Task.FromResult<FileReference>(null);
 
             if (requestBody.MusicaId != null)
@@ -70,9 +48,13 @@ namespace RestServer.Controllers
                 );
             }
 
-            var songCollection = MongoWrapper.Database.GetCollection<Song>(nameof(Song));
+            var userCollection = MongoWrapper.Database.GetCollection<Musician>(nameof(User));
 
-            var creationDate = DateTime.UtcNow;
+            var userFilterBuilder = new FilterDefinitionBuilder<Musician>();
+            var userFilter = userFilterBuilder.And(
+                GeneralUtils.NotDeactivated(userFilterBuilder),
+                userFilterBuilder.Eq(u => u._id, userId)
+            );
 
             var fileReference = await fileReferenceTask;
             var audioReference = new AudioReference
@@ -82,6 +64,7 @@ namespace RestServer.Controllers
                 FileMetadata = new AudioMetadata(fileReference.FileMetadata)
             };
 
+            var creationDate = DateTime.UtcNow;
             var song = new Song
             {
                 _id = ObjectId.GenerateNewId(creationDate),
@@ -94,13 +77,16 @@ namespace RestServer.Controllers
                 TimesPlayedRadio = 0,
             };
 
-            await songCollection.InsertOneAsync(song);
+            var userUpdateBuilder = new UpdateDefinitionBuilder<Musician>();
+            var userUpdate = userUpdateBuilder.AddToSet(m => m.Songs, song);
+
+            var updateResult = await userCollection.UpdateOneAsync(userFilter, userUpdate);
 
             return new ResponseBody
             {
                 Code = ResponseCode.GenericSuccess,
                 Data = song._id,
-                Message = "Música criada com sucesso!",
+                Message = "Música adicionada com sucesso!",
                 Success = true
             };
         }

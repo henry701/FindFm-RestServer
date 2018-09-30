@@ -67,7 +67,7 @@ namespace RestServer.Controllers
             return responseBody;
         }
 
-        private static dynamic BuildUserObject(User user)
+        public static dynamic BuildUserObject(User user)
         {
             dynamic userObj = new ExpandoObject();
             userObj.usuario = new ExpandoObject();
