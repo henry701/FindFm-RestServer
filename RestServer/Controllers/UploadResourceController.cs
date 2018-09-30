@@ -74,6 +74,8 @@ namespace RestServer.Controllers
                 // Auto-Deletion allowed 1 day from now. TODO: Implement job that does it
                 // TODO: How to check for FileReference? Can't delete file if it is already used,
                 // in those cases we should delete only the token!
+                // TODO: Maybe a Boolean in AdditionalData which says if this token is being used or not:
+                // If it is, the job will delete only the token, and not the file as well. Sounds good.
                 DeactivationDate = DateTime.UtcNow + TimeSpan.FromDays(1)
             };
 

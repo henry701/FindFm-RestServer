@@ -19,6 +19,7 @@ using System.Threading;
 using MongoDB.Driver;
 using MongoDB.Bson;
 using MongoDB.Driver.GridFS;
+using LiterCast.AudioSources;
 
 namespace RestServer
 {

@@ -18,15 +18,15 @@ using System;
 
 namespace RestServer.Controllers
 {
-    internal abstract class EditUserControllerBase<TBody> : ControllerBase where TBody : IBasicRegisterBody
+    internal abstract class EditUserControllerBase<TBody, TEntity> : ControllerBase where TBody : IBasicRegisterBody where TEntity : User
     {
-        private readonly ILogger<EditUserControllerBase<TBody>> Logger;
+        private readonly ILogger<EditUserControllerBase<TBody, TEntity>> Logger;
         private readonly MongoWrapper MongoWrapper;
 
-        public EditUserControllerBase(MongoWrapper mongoWrapper, ILogger<EditUserControllerBase<TBody>> logger)
+        public EditUserControllerBase(MongoWrapper mongoWrapper, ILogger<EditUserControllerBase<TBody, TEntity>> logger)
         {
             Logger = logger;
-            Logger.LogTrace($"{nameof(EditUserControllerBase<TBody>)} Constructor Invoked");
+            Logger.LogTrace($"{nameof(EditUserControllerBase<TBody, TEntity>)} Constructor Invoked");
             MongoWrapper = mongoWrapper;
         }
 
@@ -39,9 +39,9 @@ namespace RestServer.Controllers
 
             var newUserTask = BindUser(requestBody, creationDate);
 
-            var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(User));
+            var userCollection = MongoWrapper.Database.GetCollection<TEntity>(nameof(User));
 
-            var userFilterBuilder = new FilterDefinitionBuilder<User>();
+            var userFilterBuilder = new FilterDefinitionBuilder<TEntity>();
             var userFilter = userFilterBuilder.And
             (
                 userFilterBuilder.Eq(u => u._id, new ObjectId(id)),
@@ -49,6 +49,18 @@ namespace RestServer.Controllers
             );
 
             var oldUser = (await userCollection.FindAsync(userFilter)).SingleOrDefault();
+
+            if (oldUser == null)
+            {
+                Logger.LogError("User with valid JWT id was not found in database! Id: {}", id);
+                Response.StatusCode = (int) HttpStatusCode.InternalServerError;
+                return new ResponseBody
+                {
+                    Code = ResponseCode.NotFound,
+                    Success = false,
+                    Message = "Seu usuário não foi encontrado!",
+                };
+            }
 
             var newUser = await newUserTask;
             var userUpdate = await CreateUpdateDefinition(oldUser, newUser);
@@ -58,21 +70,25 @@ namespace RestServer.Controllers
                 userUpdate = userUpdate.Set(u => u.EmailConfirmed, false);
             }
 
-            var userUpdateResult = await userCollection.UpdateOneAsync(userFilter, userUpdate);
+            var userUpdateTask = userCollection.UpdateOneAsync(userFilter, userUpdate);
 
-            if (oldUser == null)
-            {
-                Logger.LogError("User with valid JWT id was not found in database! Id: {}", id);
-                Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                return new ResponseBody
-                {
-                    Code = ResponseCode.NotFound,
-                    Success = false,
-                    Message = "Seu usuário não foi encontrado!",
-                };
-            }
+            var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
 
-            // TODO: Editar todos os posts daquele usuário com o nome e avatar novo
+            var postFilterBuilder = new FilterDefinitionBuilder<Post>();
+            var postFilter = postFilterBuilder.And
+            (
+                postFilterBuilder.Eq(p => p.Poster._id, oldUser._id),
+                GeneralUtils.NotDeactivated(postFilterBuilder)
+            );
+
+            var postUpdateBuilder = new UpdateDefinitionBuilder<Post>();
+            var postUpdate = postUpdateBuilder.Set(p => p.Poster.Avatar, newUser.Avatar)
+                                              .Set(p => p.Poster.FullName, newUser.FullName);
+
+            var postUpdateTask = postCollection.UpdateManyAsync(postFilter, postUpdate);
+
+            await userUpdateTask;
+            await postUpdateTask;
 
             return new ResponseBody
             {
@@ -82,21 +98,9 @@ namespace RestServer.Controllers
             };
         }
 
-        protected abstract Task<User> BindUser(TBody requestBody, DateTime creationDate);
+        protected abstract Task<TEntity> BindUser(TBody requestBody, DateTime creationDate);
 
-        protected abstract Task<UpdateDefinition<User>> CreateUpdateDefinition(User oldUser, User newUser);
-        /*
-        var userUpdateBuilder = new UpdateDefinitionBuilder<User>();
-        var userUpdate = userUpdateBuilder
-            .Set(u => u.Address, newUser.Address)
-            .Set(u => u.Avatar, newUser.Avatar)
-            .Set(u => u.StartDate, newUser.StartDate)
-            .Set(u => u.Email, newUser.Email)
-            .Set(u => u.FullName, newUser.FullName)
-            .Set(u => u.Password, newUser.Password)
-            .Set(u => u.Phone, newUser.Phone)
-            .Set(u => u.Avatar, newUser.Avatar);
-        */
+        protected abstract Task<UpdateDefinition<TEntity>> CreateUpdateDefinition(TEntity oldUser, TEntity newUser);
     }
 }
  

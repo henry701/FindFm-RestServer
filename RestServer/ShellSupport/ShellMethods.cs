@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using LiterCast;
 using NLog;
+using LiterCast.AudioSources;
 
 namespace RestServer.ShellSupport
 {

@@ -37,22 +37,22 @@ namespace RestServer.Controllers
         {
             var userId = new ObjectId(this.GetCurrentUserId());
 
-            var userCollection = MongoWrapper.Database.GetCollection<Musician>(nameof(User));
+            var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(User));
 
-            var userFilterBuilder = new FilterDefinitionBuilder<Musician>();
+            var userFilterBuilder = new FilterDefinitionBuilder<User>();
             var userFilter = userFilterBuilder.And(
                 GeneralUtils.NotDeactivated(userFilterBuilder),
                 userFilterBuilder.Eq(user => user._id, userId)
             );
 
-            var userProjectionBuilder = new ProjectionDefinitionBuilder<Musician>();
+            var userProjectionBuilder = new ProjectionDefinitionBuilder<User>();
             var userProjection = userProjectionBuilder
                 .Include(m => m._id)
                 .Include(m => m.FullName)
                 .Include(m => m.Avatar)
                 .Include("_t");
 
-            var userTask = userCollection.FindAsync(userFilter, new FindOptions<Musician>
+            var userTask = userCollection.FindAsync(userFilter, new FindOptions<User>
             {
                 Limit = 1,
                 AllowPartialResults = false,
@@ -60,7 +60,6 @@ namespace RestServer.Controllers
             });
 
             Task<FileReference> fileReference_Imagem = Task.FromResult<FileReference>(null);
-            Task<FileReference> fileReference_Video = Task.FromResult<FileReference>(null);
             if (requestBody.ImagemId != null)
             {
                 fileReference_Imagem = GeneralUtils.ConsumeReferenceTokenFile(
@@ -70,6 +69,7 @@ namespace RestServer.Controllers
                 );
             }
 
+            Task<FileReference> fileReference_Video = Task.FromResult<FileReference>(null);
             if (requestBody.VideoId != null)
             {
                 fileReference_Video = GeneralUtils.ConsumeReferenceTokenFile(
