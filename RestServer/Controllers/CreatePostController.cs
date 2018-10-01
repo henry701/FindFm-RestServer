@@ -50,6 +50,8 @@ namespace RestServer.Controllers
                 .Include(m => m._id)
                 .Include(m => m.FullName)
                 .Include(m => m.Avatar)
+                .Include(m => m.Address)
+                .Include(m => m.Phone)
                 .Include("_t");
 
             var userTask = userCollection.FindAsync(userFilter, new FindOptions<User>

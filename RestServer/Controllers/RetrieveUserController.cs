@@ -72,7 +72,8 @@ namespace RestServer.Controllers
             dynamic userObj = new ExpandoObject();
             userObj.usuario = new ExpandoObject();
             userObj.usuario.id = user._id;
-            userObj.usuario.endereco = new
+            if (user.Address != null) {
+                userObj.usuario.endereco = new
                 {
                     estado = EnumExtensions.GetAttribute<DisplayAttribute>(user.Address.State).Name,
                     rua = user.Address.Road,
@@ -80,6 +81,7 @@ namespace RestServer.Controllers
                     cep = user.Address.ZipCode,
                     cidade = user.Address.City
                 };
+            }
             userObj.usuario.date = user.StartDate;
             userObj.usuario.avatar = user.Avatar;
             userObj.usuario.email = user.Email;
