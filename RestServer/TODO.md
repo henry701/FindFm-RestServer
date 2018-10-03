@@ -12,10 +12,13 @@ Terminar EditUserControllerBase e implementar seus 2 descendentes
 Fazer o Criar Anuncio
 
 Fazer o Enviar Música
+	- TODO: Todo o processamento e normalização de música, achar uma lib compatível com ASP.Net Core que trate pelo
+	menos MP3 corretamente para isso, e converta para um bitrate constante de mp3 para a rádio ou para tocar as músicas.
 
 Fazer o Criar Trabalho
 	- (com anexo de mídias existentes, ou novas? Ou ambos?)
 
+// Sepa vai sair
 Fazer o Criar Pagina
 	- Fazer o settar admin de pagina
 	- Fazer o postar como página

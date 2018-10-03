@@ -80,10 +80,25 @@ namespace RestServer.Controllers
                 postFilterBuilder.Eq(p => p.Poster._id, oldUser._id),
                 GeneralUtils.NotDeactivated(postFilterBuilder)
             );
-
             var postUpdateBuilder = new UpdateDefinitionBuilder<Post>();
             var postUpdate = postUpdateBuilder.Set(p => p.Poster.Avatar, newUser.Avatar)
                                               .Set(p => p.Poster.FullName, newUser.FullName);
+
+
+            var commentFilterBuilder = new FilterDefinitionBuilder<Comment>();
+            var commentFilter = commentFilterBuilder.Eq(c => c._id, oldUser._id);
+            var postCommentFilterBuilder = new FilterDefinitionBuilder<Post>();
+            var postCommentFilter = postFilterBuilder.And
+            (
+                GeneralUtils.NotDeactivated(postFilterBuilder),
+                postCommentFilterBuilder.ElemMatch(p => p.Comments, commentFilter)
+            );
+            var postCommentUpdateBuilder = new UpdateDefinitionBuilder<Post>();
+            var postCommentUpdate = postUpdateBuilder
+                                             .Set(p => p.Comments[-1].Commenter.Avatar, newUser.Avatar)
+                                             .Set(p => p.Comments[-1].Commenter.FullName, newUser.FullName);
+
+            
 
             var postUpdateTask = postCollection.UpdateManyAsync(postFilter, postUpdate);
 
@@ -103,4 +118,5 @@ namespace RestServer.Controllers
         protected abstract Task<UpdateDefinition<TEntity>> CreateUpdateDefinition(TEntity oldUser, TEntity newUser);
     }
 }
+ 
  

@@ -88,6 +88,8 @@ namespace RestServer.Controllers
                 _id = ObjectId.GenerateNewId(creationDate),
                 Title = requestBody.Titulo,
                 Text = requestBody.Descricao,
+                Comments = new List<Comment>(),
+                Likes = new HashSet<ObjectId>(),
                 FileReferences = new FileReference[]
                 {
                      await fileReference_Imagem,
