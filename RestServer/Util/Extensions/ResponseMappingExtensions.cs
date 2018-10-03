@@ -14,6 +14,7 @@ namespace RestServer.Util.Extensions
         {
             return new
             {
+                Id = post._id,
                 Titulo = post.Title,
                 Descricao = post.Text,
                 Autor = post.Poster.BuildUserObject(),

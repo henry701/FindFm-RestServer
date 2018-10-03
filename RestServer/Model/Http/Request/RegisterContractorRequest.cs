@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Models;
 
 namespace RestServer.Model.Http.Request
 {
@@ -8,7 +9,7 @@ namespace RestServer.Model.Http.Request
     internal sealed class RegisterContractorRequest : IBasicRegisterBody
     {
         [Required]
-        public string Telefone { get; set; }
+        public PhoneNumber Telefone { get; set; }
         [Required]
         public string Email { get; set; }
         [Required]
