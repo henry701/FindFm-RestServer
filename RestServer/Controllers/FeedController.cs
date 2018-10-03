@@ -12,6 +12,7 @@ using MongoDB.Driver;
 using RestServer.Model.Config;
 using RestServer.Model.Http.Response;
 using RestServer.Util;
+using RestServer.Util.Extensions;
 
 namespace RestServer.Controllers
 {
@@ -45,7 +46,7 @@ namespace RestServer.Controllers
                 Message = "Feed atualizado com sucesso!",
                 Data = new
                 {
-                    postagens = posts.Select(RetrievePostController.BuildPostResponse),
+                    postagens = posts.Select(post => post.BuildPostResponse()),
                     anuncios = ads,
                 }
             };

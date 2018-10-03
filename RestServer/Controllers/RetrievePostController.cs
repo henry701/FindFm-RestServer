@@ -50,7 +50,7 @@ namespace RestServer.Controllers
 
             if (post == null)
             {
-                Response.StatusCode = (int) HttpStatusCode.NotFound;
+                Response.StatusCode = (int)HttpStatusCode.NotFound;
                 return new ResponseBody
                 {
                     Code = ResponseCode.NotFound,
@@ -59,6 +59,62 @@ namespace RestServer.Controllers
                 };
             }
 
+            User user = await RetrieveAuthor(post);
+            EnrichPostWithAuthor(post, user);
+
+            return new ResponseBody
+            {
+                Code = ResponseCode.GenericSuccess,
+                Success = true,
+                Message = "Post encontrado com sucesso!",
+                Data = ResponseMappingExtensions.BuildPostResponse(post),
+            };
+        }
+
+        [AllowAnonymous]
+        [HttpGet("author/{id}")]
+        public async Task<dynamic> GetByAuthorId(string id)
+        {
+            var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
+
+            var postFilterBuilder = new FilterDefinitionBuilder<Post>();
+            var postFilter = postFilterBuilder.And
+            (
+                postFilterBuilder.Eq(p => p.Poster._id, new ObjectId(id)),
+                GeneralUtils.NotDeactivated(postFilterBuilder)
+            );
+
+            var posts = (await postCollection.FindAsync(postFilter, new FindOptions<Post>
+            {
+                AllowPartialResults = true,
+            })).ToList();
+
+            User user = await RetrieveAuthor(posts.First());
+            posts.ForEach(p => EnrichPostWithAuthor(p, user));
+
+            return new ResponseBody
+            {
+                Code = ResponseCode.GenericSuccess,
+                Success = true,
+                Message = "Posts encontrados com sucesso!",
+                Data = posts.Select(post => post.BuildPostResponse()),
+            };
+        }
+
+        private void EnrichPostWithAuthor(Post post, User user)
+        {
+            if (user == null)
+            {
+                Logger.LogWarning("Post Author was not found! post id: {}, poster id: {}", post._id, post.Poster._id);
+            }
+            else
+            {
+                post.Poster = user;
+            }
+        }
+
+        private async Task<User> RetrieveAuthor(Post post)
+        {
             var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(User));
 
             var userFilterBuilder = new FilterDefinitionBuilder<User>();
@@ -79,76 +135,12 @@ namespace RestServer.Controllers
                 .Include(m => m.Address)
                 .Include("_t");
 
-            var user = (await userCollection.FindAsync(userFilter, new FindOptions<User>
+            return (await userCollection.FindAsync(userFilter, new FindOptions<User>
             {
                 Limit = 1,
                 AllowPartialResults = true,
                 Projection = userProjection
             })).SingleOrDefault();
-
-            if(user == null)
-            {
-                Logger.LogWarning("Post Author was not found! post id: {}, poster id: {}", post._id, post.Poster._id);
-            }
-            else
-            {
-                post.Poster = user;
-            }
-
-            return new ResponseBody
-            {
-                Code = ResponseCode.GenericSuccess,
-                Success = true,
-                Message = "Post encontrado com sucesso!",
-                Data = BuildPostResponse(post),
-            };
-        }
-
-        [AllowAnonymous]
-        [HttpGet("author/{id}")]
-        public async Task<dynamic> GetByAuthorId(string id)
-        {
-            var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
-
-            var postFilterBuilder = new FilterDefinitionBuilder<Post>();
-            var postFilter = postFilterBuilder.And
-            (
-                postFilterBuilder.Eq(p => p.Poster._id, new ObjectId(id)),
-                GeneralUtils.NotDeactivated(postFilterBuilder)
-            );
-
-            var posts = await postCollection.FindAsync(postFilter, new FindOptions<Post>
-            {
-                AllowPartialResults = true,
-            });
-
-            return new ResponseBody
-            {
-                Code = ResponseCode.GenericSuccess,
-                Success = true,
-                Message = "Posts encontrados com sucesso!",
-                Data = posts.ToList().Select(BuildPostResponse),
-            };
-        }
-
-        public static dynamic BuildPostResponse(Post post)
-        {
-            return new
-            {
-                Titulo = post.Title,
-                Descricao = post.Text,
-                Autor = RetrieveUserController.BuildUserObject(post.Poster),
-                Likes = (int) post.Likes,
-                Criacao = post._id.CreationTime,
-                Midias = post.FileReferences.Select
-                    (
-                        fr => new
-                        {
-                            Id = fr._id.ToString(),
-                            TipoMidia = fr.FileMetadata.FileType.GetAttribute<DisplayAttribute>().ShortName,
-                        }
-                   )
-            };
         }
     }
 }

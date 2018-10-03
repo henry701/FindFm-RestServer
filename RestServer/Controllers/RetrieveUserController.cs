@@ -62,51 +62,9 @@ namespace RestServer.Controllers
             responseBody.Code = ResponseCode.GenericSuccess;
             responseBody.Success = true;
             responseBody.Message = "Usuário encontrado com sucesso!";
-            responseBody.Data = BuildUserObject(user);
+            responseBody.Data = user.BuildUserObject();
 
             return responseBody;
-        }
-
-        public static dynamic BuildUserObject(User user)
-        {
-            dynamic userObj = new ExpandoObject();
-            userObj.usuario = new ExpandoObject();
-            userObj.usuario.id = user._id;
-            if (user.Address != null) {
-                userObj.usuario.endereco = new
-                {
-                    estado = EnumExtensions.GetAttribute<DisplayAttribute>(user.Address.State).Name,
-                    rua = user.Address.Road,
-                    numero = user.Address.Numeration,
-                    cep = user.Address.ZipCode,
-                    cidade = user.Address.City
-                };
-            }
-            userObj.usuario.date = user.StartDate;
-            userObj.usuario.avatar = user.Avatar;
-            userObj.usuario.email = user.Email;
-            userObj.usuario.fullName = user.FullName;
-            userObj.usuario.telefone = user.Phone;
-            userObj.usuario.Kind = user.Kind;
-
-            if (user is Musician musician)
-            {
-                IncrementMusicianObject(musician, userObj);
-            }
-            return userObj;
-        }
-
-        private static void IncrementMusicianObject(Musician musician, dynamic userObj)
-        {
-            userObj.usuario.musicas = musician.Songs?.Where(s => s != null).Select(song => new
-            {
-                nome = song.Name,
-                idResource = song.AudioReference._id,
-                duracao = song.DurationSeconds,
-                autoral = song.Original,
-                autorizadoRadio = song.RadioAuthorized
-            });
-            userObj.usuario.habilidades = musician.InstrumentSkills?.ToDictionary(kv => EnumExtensions.GetAttribute<DisplayAttribute>(kv.Key).Name, kv => (int)kv.Value);
         }
 
         [HttpGet("me")]
@@ -143,7 +101,7 @@ namespace RestServer.Controllers
             responseBody.Code = ResponseCode.GenericSuccess;
             responseBody.Success = true;
             responseBody.Message = "Usuário encontrado com sucesso!";
-            responseBody.Data = BuildUserObject(user);
+            responseBody.Data = user.BuildUserObject();
 
             return responseBody;
         }
