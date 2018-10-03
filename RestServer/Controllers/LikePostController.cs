@@ -65,5 +65,46 @@ namespace RestServer.Controllers
                 Message = "Post Likeado com sucesso!",
             };
         }
+
+        [HttpDelete("{id}")]
+        public async Task<dynamic> UnlikeById(string id)
+        {
+            var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
+
+            var postFilterBuilder = new FilterDefinitionBuilder<Post>();
+            var postFilter = postFilterBuilder.And
+            (
+                postFilterBuilder.Eq(u => u._id, new ObjectId(id)),
+                GeneralUtils.NotDeactivated(postFilterBuilder)
+            );
+
+            ObjectId currentUserId = new ObjectId(this.GetCurrentUserId());
+
+            var postUpdateBuilder = new UpdateDefinitionBuilder<Post>();
+            var postUpdate = postUpdateBuilder.Pull(p => p.Likes, currentUserId);
+
+            var updateResult = await postCollection.UpdateOneAsync(
+                postFilter,
+                postUpdate
+            );
+
+            if (updateResult.MatchedCount == 0)
+            {
+                Response.StatusCode = (int) HttpStatusCode.NotFound;
+                return new ResponseBody
+                {
+                    Code = ResponseCode.NotFound,
+                    Success = false,
+                    Message = "Post não encontrado!",
+                };
+            }
+
+            return new ResponseBody
+            {
+                Code = ResponseCode.GenericSuccess,
+                Success = true,
+                Message = "Post Unlikeado com sucesso!",
+            };
+        }
     }
 }
