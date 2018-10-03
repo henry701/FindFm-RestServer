@@ -89,16 +89,28 @@ namespace RestServer.Controllers
                 AllowPartialResults = true,
             })).ToList();
 
-            User user = await RetrieveAuthor(posts.First());
-            posts.ForEach(p => EnrichPostWithAuthor(p, user));
-
-            return new ResponseBody
+            if (posts.Count > 0)
             {
-                Code = ResponseCode.GenericSuccess,
-                Success = true,
-                Message = "Posts encontrados com sucesso!",
-                Data = posts.Select(post => post.BuildPostResponse()),
-            };
+                User user = await RetrieveAuthor(posts.First());
+                posts.ForEach(p => EnrichPostWithAuthor(p, user));
+
+                return new ResponseBody
+                {
+                    Code = ResponseCode.GenericSuccess,
+                    Success = true,
+                    Message = "Posts encontrados com sucesso!",
+                    Data = posts.Select(post => post.BuildPostResponse()),
+                };
+            } else
+            {
+                return new ResponseBody
+                {
+                    Code = ResponseCode.GenericSuccess,
+                    Success = true,
+                    Message = "Nenhum Post encontrado!",
+                    Data = posts.Select(post => post.BuildPostResponse()),
+                };
+            }
         }
 
         private void EnrichPostWithAuthor(Post post, User user)

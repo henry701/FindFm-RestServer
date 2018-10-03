@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -68,7 +69,8 @@ namespace RestServer.Controllers
                 _id = ObjectId.GenerateNewId(),
                 Commenter = (await userTask).Single(),
                 Likes = new HashSet<ObjectId>(),
-                Text = requestBody.Comentario
+                Text = requestBody.Comentario,
+                CreationDate =  DateTime.UtcNow
             };
 
             var postUpdateBuilder = new UpdateDefinitionBuilder<Post>();
