@@ -41,7 +41,7 @@ namespace RestServer.Controllers
                     // Road = requestBody.Endereco,
                     // Numeration = requestBody.NumeroEndereco,
                 },
-                Phone = ValidationUtils.ValidatePhoneNumber(ParsingUtils.ParsePhoneNumber(requestBody.Telefone)),
+                Phone = ValidationUtils.ValidatePhoneNumber(requestBody.Telefone),
                 Ip = TrackedEntity<IPAddress>.From(HttpContext.Connection.RemoteIpAddress, creationDate),
                 Position = TrackedEntity<GeoJsonPoint<GeoJson2DGeographicCoordinates>>.From(null, creationDate),
                 FullName = ValidationUtils.ValidateName(requestBody.NomeCompleto),

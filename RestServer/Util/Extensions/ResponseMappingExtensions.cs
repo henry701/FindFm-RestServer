@@ -27,6 +27,19 @@ namespace RestServer.Util.Extensions
                             Id = fr._id.ToString(),
                             TipoMidia = fr.FileMetadata.FileType.GetAttribute<DisplayAttribute>().ShortName,
                         }
+                   ),
+               Comentarios = post.Comments.Select(
+                    comentario => new
+                    {
+                        Comentador = new
+                        {
+                            NomeCompleto = comentario.Commenter.FullName,
+                            Id = comentario.Commenter._id,
+                            FotoID = comentario.Commenter.Avatar?._id
+                        },
+                        Comentario = comentario.Text,
+                        DataComentario = comentario.CreationDate
+                    }
                    )
             };
         }
