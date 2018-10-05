@@ -38,7 +38,9 @@ namespace RestServer.Util.Extensions
                             FotoID = comentario.Commenter.Avatar?._id
                         },
                         Comentario = comentario.Text,
-                        DataComentario = comentario.CreationDate
+                        DataComentario = comentario.CreationDate,
+                        Likes = comentario.Likes,
+                        Id = comentario._id
                     }
                    )
             };

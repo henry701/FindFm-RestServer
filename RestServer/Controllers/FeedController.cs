@@ -91,7 +91,47 @@ namespace RestServer.Controllers
                 Sort = postSort,
                 Projection = postProjection
             });
+
+            var postList = postsTask.ToList();
+
+            if (postList.Count > 0)
+            {               
+                postList.ForEach(async p => await GetPostAuthorAsync(p));
+
+                return postList;
+            }
+
             return postsTask.ToEnumerable();
+        }
+
+        private async Task<User> RetrieveAuthor(Post post)
+        {
+            var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(User));
+
+            var userFilterBuilder = new FilterDefinitionBuilder<User>();
+            var userFilter = userFilterBuilder.And
+            (
+                userFilterBuilder.Eq(u => u._id, post.Poster._id),
+                GeneralUtils.NotDeactivated(userFilterBuilder)
+            );
+
+            var userProjectionBuilder = new ProjectionDefinitionBuilder<User>();
+            var userProjection = userProjectionBuilder
+                .Include(m => m._id)
+                .Include(m => m.FullName)
+                .Include(m => m.Avatar)
+                .Include(m => m.Phone)
+                .Include(m => m.StartDate)
+                .Include(m => m.Email)
+                .Include(m => m.Address)
+                .Include("_t");
+
+            return (await userCollection.FindAsync(userFilter, new FindOptions<User>
+            {
+                Limit = 1,
+                AllowPartialResults = true,
+                Projection = userProjection
+            })).SingleOrDefault();
         }
 
         private async Task<IEnumerable<MetascoredAdvertisement>> FetchAds()
@@ -133,6 +173,21 @@ namespace RestServer.Controllers
             });
             return adsTask.ToEnumerable();
         }
+
+        private async Task GetPostAuthorAsync(Post post)
+        {
+            User user = await RetrieveAuthor(post);
+            if (user == null)
+            {
+                Logger.LogWarning("Post Author was not found! post id: {}, poster id: {}", post._id, post.Poster._id);
+            }
+            else
+            {
+                post.Poster = user;
+            }
+        }
+
+        
 
         private class MetascoredPost : Post
         {
