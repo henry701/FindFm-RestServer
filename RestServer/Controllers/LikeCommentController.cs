@@ -25,26 +25,30 @@ namespace RestServer.Controllers
             MongoWrapper = mongoWrapper;
         }
 
-        [HttpGet("{id}")]
-        public async Task<dynamic> LikeById(string id)
+        [HttpGet("{postId}/{commentId}")]
+        public async Task<dynamic> LikeById(string postId, string commentId)
         {
-            //TODO: nao esta achando o comentario, pq o comentario ta dentro do post
-            var commentCollection = MongoWrapper.Database.GetCollection<Comment>(nameof(Comment));
+            var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
 
             var commentFilterBuilder = new FilterDefinitionBuilder<Comment>();
-            var commentFilter = commentFilterBuilder.And
+            var commentFilter = commentFilterBuilder.Eq(c => c._id, new ObjectId(commentId));
+
+            var postFilterBuilder = new FilterDefinitionBuilder<Post>();
+            var postFilter = postFilterBuilder.And
             (
-                commentFilterBuilder.Eq(u => u._id, new ObjectId(id)),
-                GeneralUtils.NotDeactivated(commentFilterBuilder)
+                postFilterBuilder.Eq(u => u._id, new ObjectId(postId)),
+                GeneralUtils.NotDeactivated(postFilterBuilder),
+                postFilterBuilder.ElemMatch(u => u.Comments, commentFilter),
+                GeneralUtils.NotDeactivated(postFilterBuilder, p => p.Comments)
             );
 
             ObjectId currentUserId = new ObjectId(this.GetCurrentUserId());
 
-            var commentUpdateBuilder = new UpdateDefinitionBuilder<Comment>();
-            var commentUpdate = commentUpdateBuilder.AddToSet(p => p.Likes, currentUserId);
+            var commentUpdateBuilder = new UpdateDefinitionBuilder<Post>();
+            var commentUpdate = commentUpdateBuilder.AddToSet(p => p.Comments[-1].Likes, currentUserId);
 
-            var updateResult = await commentCollection.UpdateOneAsync(
-                commentFilter,
+            var updateResult = await postCollection.UpdateOneAsync(
+                postFilter,
                 commentUpdate
             );
 
@@ -67,26 +71,27 @@ namespace RestServer.Controllers
             };
         }
 
-        [HttpDelete("{id}")]
-        public async Task<dynamic> UnlikeById(string id)
+        [HttpDelete("{postId}/{commentId}")]
+        public async Task<dynamic> UnlikeById(string postId, string commentId)
         {
-            //TODO: nao esta achando o comentario, pq o comentario ta dentro do post
-            var commentCollection = MongoWrapper.Database.GetCollection<Comment>(nameof(Comment));
+            var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
 
-            var commentFilterBuilder = new FilterDefinitionBuilder<Comment>();
-            var commentFilter = commentFilterBuilder.And
+            var postFilterBuilder = new FilterDefinitionBuilder<Post>();
+            var postFilter = postFilterBuilder.And
             (
-                commentFilterBuilder.Eq(u => u._id, new ObjectId(id)),
-                GeneralUtils.NotDeactivated(commentFilterBuilder)
+                postFilterBuilder.Eq(u => u._id, new ObjectId(postId)),
+                GeneralUtils.NotDeactivated(postFilterBuilder),
+                postFilterBuilder.Eq(u => u.Comments[-1]._id, new ObjectId(commentId)),
+                GeneralUtils.NotDeactivated(postFilterBuilder, p => p.Comments[-1])
             );
 
             ObjectId currentUserId = new ObjectId(this.GetCurrentUserId());
 
-            var commentUpdateBuilder = new UpdateDefinitionBuilder<Comment>();
-            var commentUpdate = commentUpdateBuilder.Pull(p => p.Likes, currentUserId);
+            var commentUpdateBuilder = new UpdateDefinitionBuilder<Post>();
+            var commentUpdate = commentUpdateBuilder.Pull(p => p.Comments[-1].Likes, currentUserId);
 
-            var updateResult = await commentCollection.UpdateOneAsync(
-                commentFilter,
+            var updateResult = await postCollection.UpdateOneAsync(
+                postFilter,
                 commentUpdate
             );
 

@@ -62,7 +62,7 @@ namespace RestServer.Controllers
             responseBody.Code = ResponseCode.GenericSuccess;
             responseBody.Success = true;
             responseBody.Message = "Usuário encontrado com sucesso!";
-            responseBody.Data = user.BuildUserObject();
+            responseBody.Data = user.BuildUserResponse();
 
             return responseBody;
         }
@@ -101,7 +101,7 @@ namespace RestServer.Controllers
             responseBody.Code = ResponseCode.GenericSuccess;
             responseBody.Success = true;
             responseBody.Message = "Usuário encontrado com sucesso!";
-            responseBody.Data = user.BuildUserObject();
+            responseBody.Data = user.BuildUserResponse();
 
             return responseBody;
         }

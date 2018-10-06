@@ -17,7 +17,7 @@ namespace RestServer.Util.Extensions
                 Id = post._id,
                 Titulo = post.Title,
                 Descricao = post.Text,
-                Autor = post.Poster.BuildUserObject(),
+                Autor = post.Poster.BuildUserResponse(),
                 UsuarioLikes = post.Likes,
                 Criacao = post._id.CreationTime,
                 Midias = post.FileReferences.Select
@@ -28,25 +28,28 @@ namespace RestServer.Util.Extensions
                             TipoMidia = fr.FileMetadata.FileType.GetAttribute<DisplayAttribute>().ShortName,
                         }
                    ),
-               Comentarios = post.Comments.Select(
-                    comentario => new
-                    {
-                        Comentador = new
-                        {
-                            NomeCompleto = comentario.Commenter.FullName,
-                            Id = comentario.Commenter._id,
-                            FotoID = comentario.Commenter.Avatar?._id
-                        },
-                        Comentario = comentario.Text,
-                        DataComentario = comentario._id.CreationTime,
-                        Likes = comentario.Likes,
-                        Id = comentario._id
-                    }
-                   )
+               Comentarios = post.Comments.Select(BuildCommentResponse)
             };
         }
 
-        public static dynamic BuildUserObject(this User user)
+        public static dynamic BuildCommentResponse(this Comment comentario)
+        {
+            return new
+            {
+                Comentador = new
+                {
+                    NomeCompleto = comentario.Commenter.FullName,
+                    Id = comentario.Commenter._id,
+                    FotoID = comentario.Commenter.Avatar?._id
+                },
+                Comentario = comentario.Text,
+                DataComentario = comentario._id.CreationTime,
+                Likes = comentario.Likes,
+                Id = comentario._id
+            };
+        }
+
+        public static dynamic BuildUserResponse(this User user)
         {
             dynamic userObj = new ExpandoObject();
             userObj.usuario = new ExpandoObject();

@@ -14,6 +14,7 @@ using MongoDB.Bson;
 using RestServer.Exceptions;
 using MongoDB.Driver.GridFS;
 using MongoDB.Bson.Serialization;
+using System.Linq.Expressions;
 
 namespace RestServer.Util
 {
@@ -23,6 +24,86 @@ namespace RestServer.Util
     internal static class GeneralUtils
     {
         private static readonly ILogger LOGGER = LogManager.GetCurrentClassLogger();
+
+        public static FilterDefinition<TDocument> NotDeactivated<TDocument, TItem>(FilterDefinitionBuilder<TDocument> builder, Expression<Func<TDocument, IEnumerable<TItem>>> acessor, DateTime? dateTime = null) where TItem : IActivationAware
+        {
+            var twoBuilder = new FilterDefinitionBuilder<TItem>();
+            if (!dateTime.HasValue)
+            {
+                dateTime = DateTime.UtcNow;
+            }
+            return builder.Or
+            (
+                builder.Not
+                (
+                    builder.ElemMatch
+                    (
+                        acessor,
+                        twoBuilder.Exists
+                        (
+                            t => t.DeactivationDate
+                        )
+                    )
+                ),
+                builder.ElemMatch
+                (
+                    acessor,
+                    twoBuilder.Gt
+                    (
+                        t => t.DeactivationDate,
+                        dateTime.Value
+                    )
+                )
+            );
+        }
+
+        public static FilterDefinition<TDocument> NotDeactivated<TDocument, TItem>(FilterDefinitionBuilder<TDocument> builder, Expression<Func<TDocument, TItem>> acessor, DateTime? dateTime = null) where TItem : IActivationAware
+        {
+            if (!dateTime.HasValue)
+            {
+                dateTime = DateTime.UtcNow;
+            }
+            return builder.Or(
+                builder.Not(
+                    builder.Exists(
+                        Expression.Lambda<Func<TDocument, object>>
+                        (
+                            Expression.Convert
+                            (
+                                Expression.Property
+                                (
+                                    acessor.Body,
+                                    nameof(IActivationAware.DeactivationDate)
+                                ),
+                                typeof(object)
+                            ),
+                            acessor.Parameters
+                        )
+                    )
+                ),
+                builder.Gt
+                (
+                    Expression.Lambda<Func<TDocument, ulong>>
+                    (
+                        Expression.Convert
+                        (
+                            Expression.Property
+                            (
+                                Expression.Property
+                                (
+                                    acessor.Body,
+                                    nameof(IActivationAware.DeactivationDate)
+                                ),
+                                nameof(DateTime.Ticks)
+                            ),
+                            typeof(ulong)
+                        ),
+                        acessor.Parameters
+                    ),
+                    (ulong) (dateTime.Value.Ticks)
+                )
+            );
+        }
 
         public static FilterDefinition<TDocument> NotDeactivated<TDocument>(FilterDefinitionBuilder<TDocument> builder, DateTime? dateTime = null) where TDocument : IActivationAware
         {
