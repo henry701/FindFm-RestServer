@@ -8,11 +8,14 @@ using System.Text;
 using System.Threading.Tasks;
 using Models;
 using RestServer.Model.Config;
+using NLog;
 
 namespace RestServer.Util
 {
     internal static class EmailUtils
     {
+        private static readonly ILogger LOGGER = LogManager.GetCurrentClassLogger();
+
         public static async Task SendConfirmationEmail(MongoWrapper mongoWrapper,
                                                        SmtpConfiguration smtpConfig,
                                                        User user)
@@ -85,17 +88,25 @@ namespace RestServer.Util
                 EnableSsl = true,
                 Timeout = smtpConfig.Timeout,
                 DeliveryMethod = SmtpDeliveryMethod.Network,
+                DeliveryFormat = SmtpDeliveryFormat.International,
+                TargetName = smtpConfig.Host,
                 UseDefaultCredentials = false,
-                Credentials = new NetworkCredential(smtpConfig.Email, smtpConfig.Password),
+                Credentials = new NetworkCredential
+                (
+                    smtpConfig.Email,
+                    smtpConfig.Password,
+                    from.Host
+                ),
             };
 
             MailMessage mailMessage = new MailMessage()
             {
                 BodyEncoding = Encoding.UTF8,
                 DeliveryNotificationOptions = DeliveryNotificationOptions.OnFailure,
-                From = new MailAddress(smtpConfig.Email, smtpConfig.DisplayName, Encoding.UTF8),
+                From = from,
                 BodyTransferEncoding = System.Net.Mime.TransferEncoding.Base64,
                 IsBodyHtml = true,
+                Sender = from,
                 Subject = subject,
                 Priority = MailPriority.Normal,
                 SubjectEncoding = Encoding.UTF8,
@@ -107,7 +118,15 @@ namespace RestServer.Util
                 mailMessage.To.Add(address);
             }
 
-            await client.SendMailAsync(mailMessage);
+            try
+            {
+                await client.SendMailAsync(mailMessage);
+            }
+            catch(Exception e)
+            {
+                LOGGER.Error(e, "Error while sending e-mail!");
+                throw;
+            }
         }
     }
 }

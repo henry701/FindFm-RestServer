@@ -37,9 +37,6 @@ namespace RestServer.Controllers
                 {
                     City = requestBody.Cidade,
                     State = EnumExtensions.FromShortDisplayName<BrazilState>(requestBody.Uf),
-                    // TODO: Musico nao passa endereço full pq? @Bruno
-                    // Road = requestBody.Endereco,
-                    // Numeration = requestBody.NumeroEndereco,
                 },
                 Phone = ValidationUtils.ValidatePhoneNumber(requestBody.Telefone),
                 Ip = TrackedEntity<IPAddress>.From(HttpContext.Connection.RemoteIpAddress, creationDate),
