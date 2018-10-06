@@ -76,13 +76,17 @@ namespace RestServer.Controllers
         {
             var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
 
+
+            var commentFilterBuilder = new FilterDefinitionBuilder<Comment>();
+            var commentFilter = commentFilterBuilder.Eq(c => c._id, new ObjectId(commentId));
+
             var postFilterBuilder = new FilterDefinitionBuilder<Post>();
             var postFilter = postFilterBuilder.And
             (
                 postFilterBuilder.Eq(u => u._id, new ObjectId(postId)),
                 GeneralUtils.NotDeactivated(postFilterBuilder),
-                postFilterBuilder.Eq(u => u.Comments[-1]._id, new ObjectId(commentId)),
-                GeneralUtils.NotDeactivated(postFilterBuilder, p => p.Comments[-1])
+                postFilterBuilder.ElemMatch(u => u.Comments, commentFilter),
+                GeneralUtils.NotDeactivated(postFilterBuilder, p => p.Comments)
             );
 
             ObjectId currentUserId = new ObjectId(this.GetCurrentUserId());
