@@ -3,6 +3,10 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# FindFm
+
+config.json
+
 # User-specific files
 *.suo
 *.user
@@ -328,4 +332,3 @@ ASALocalRun/
 
 # MFractors (Xamarin productivity tool) working folder 
 .mfractor/
-RestServer/config.json

@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Models;
 using RestServer.Model.Config;
 using NLog;
+using System.Threading;
 
 namespace RestServer.Util
 {
@@ -89,15 +90,16 @@ namespace RestServer.Util
                 Timeout = smtpConfig.Timeout,
                 DeliveryMethod = SmtpDeliveryMethod.Network,
                 DeliveryFormat = SmtpDeliveryFormat.International,
-                TargetName = smtpConfig.Host,
                 UseDefaultCredentials = false,
                 Credentials = new NetworkCredential
                 (
                     smtpConfig.Email,
-                    smtpConfig.Password,
-                    from.Host
+                    smtpConfig.Password
                 ),
             };
+
+            client.ServicePoint.Expect100Continue = true;
+            client.ServicePoint.UseNagleAlgorithm = false;
 
             MailMessage mailMessage = new MailMessage()
             {
