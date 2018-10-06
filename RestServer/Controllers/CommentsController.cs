@@ -70,7 +70,6 @@ namespace RestServer.Controllers
                 Commenter = (await userTask).Single(),
                 Likes = new HashSet<ObjectId>(),
                 Text = requestBody.Comentario,
-                CreationDate =  DateTime.UtcNow
             };
 
             var postUpdateBuilder = new UpdateDefinitionBuilder<Post>();
