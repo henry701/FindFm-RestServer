@@ -2,6 +2,7 @@
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 using RestServer.Util.Extensions;
+using System;
 using System.Linq;
 
 namespace RestServer.Util
@@ -31,6 +32,7 @@ namespace RestServer.Util
             Database = MongoClient.GetDatabase(databaseName);
 
             CreateCollections();
+            CreateIndexes();
         }
 
         private void CreateCollections()
@@ -43,6 +45,31 @@ namespace RestServer.Util
             {
                 await Database.CreateCollectionAsync(tp.Name);
             });
+        }
+
+        private void CreateIndexes()
+        {
+            var postCollection = Database.GetCollection<Post>(nameof(Post));
+            postCollection.Indexes.CreateOne
+            (
+                new CreateIndexModel<Post>
+                (
+                    new IndexKeysDefinitionBuilder<Post>()
+                    .Text(p => p.Text)
+                    .Text(p => p.Title)
+                    .Text(p => p.Poster.FullName),
+                    new CreateIndexOptions
+                    {
+                        Background = false,
+                        Name = "PostTextIndex",
+                        Unique = false,
+                    }
+                ),
+                new CreateOneIndexOptions
+                {
+                    
+                }
+            );
         }
     }
 }

@@ -58,7 +58,7 @@ namespace RestServer.Controllers
 
             var postProjectionBuilder = new ProjectionDefinitionBuilder<Post>();
             var postProjection = postProjectionBuilder
-                .MetaTextScore(nameof(MetascoredPost.MetaScore))
+                .MetaTextScore(FirstCharacterToLower(nameof(MetascoredPost.MetaScore)))
                 .Include(post => post._id)
                 .Include(post => post.Title)
                 .Include(post => post.Text)
@@ -69,19 +69,25 @@ namespace RestServer.Controllers
             ;
 
             var postFilterBuilder = new FilterDefinitionBuilder<Post>();
-            postFilterBuilder.Text("metaDadosTODO", new TextSearchOptions
-            {
-                CaseSensitive = false,
-                DiacriticSensitive = false,
-            });
-            var postFilter = postFilterBuilder.Gt(
-                post => post._id,
-                new ObjectId(DateTime.UtcNow.Subtract(TimeSpan.FromDays(7)), 0, 0, 0)
+            var postFilter = postFilterBuilder.And
+            (
+                postFilterBuilder.Gt
+                (
+                    post => post._id,
+                    // Only from the most recent seven days
+                    new ObjectId(DateTime.UtcNow.Subtract(TimeSpan.FromDays(7)), 0, 0, 0)
+                ),
+                postFilterBuilder.Text("postão", new TextSearchOptions
+                {
+                    CaseSensitive = false,
+                    DiacriticSensitive = false,
+                })
             );
 
             var postSortBuilder = new SortDefinitionBuilder<Post>();
             var postSort = postSortBuilder.Combine(
-                postSortBuilder.MetaTextScore(nameof(MetascoredPost.MetaScore))
+                postSortBuilder.Descending(p => p._id),
+                postSortBuilder.MetaTextScore(FirstCharacterToLower(nameof(MetascoredPost.MetaScore)))
             );
 
             var postsTask = await postCollection.FindAsync(postFilter, new FindOptions<Post, MetascoredPost>
@@ -140,7 +146,7 @@ namespace RestServer.Controllers
 
             var adProjectionBuilder = new ProjectionDefinitionBuilder<Advertisement>();
             var adProjection = adProjectionBuilder
-                .MetaTextScore(nameof(MetascoredPost.MetaScore))
+                .MetaTextScore(FirstCharacterToLower(nameof(MetascoredPost.MetaScore)))
                 .Include(ad => ad._id)
                 .Include(ad => ad.Title)
                 .Include(ad => ad.Text)
@@ -149,7 +155,7 @@ namespace RestServer.Controllers
             ;
 
             var adFilterBuilder = new FilterDefinitionBuilder<Advertisement>();
-            adFilterBuilder.Text("metaDadosTODO", new TextSearchOptions
+            adFilterBuilder.Text("anunciozão", new TextSearchOptions
             {
                 CaseSensitive = false,
                 DiacriticSensitive = false,
@@ -161,7 +167,7 @@ namespace RestServer.Controllers
 
             var adSortBuilder = new SortDefinitionBuilder<Advertisement>();
             var adSort = adSortBuilder.Combine(
-                adSortBuilder.MetaTextScore(nameof(MetascoredPost.MetaScore))
+                adSortBuilder.MetaTextScore(FirstCharacterToLower(nameof(MetascoredPost.MetaScore)))
             );
 
             var adsTask = await adCollection.FindAsync(adFilter, new FindOptions<Advertisement, MetascoredAdvertisement>
@@ -187,16 +193,24 @@ namespace RestServer.Controllers
             }
         }
 
-        
+        public static string FirstCharacterToLower(string str)
+        {
+            if (string.IsNullOrEmpty(str) || char.IsLower(str, 0))
+            {
+                return str;
+            }
+
+            return char.ToLowerInvariant(str[0]) + str.Substring(1);
+        }
 
         private class MetascoredPost : Post
         {
-            public int MetaScore { get; set; }
+            public double MetaScore { get; set; }
         }
 
         private class MetascoredAdvertisement : Advertisement
         {
-            public int MetaScore { get; set; }
+            public double MetaScore { get; set; }
         }
     }
 }
