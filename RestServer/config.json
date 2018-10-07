@@ -15,11 +15,11 @@
   "consolePrompt": "#FindFMServer>",
 
   "smtp": {
-    "timeout": 3000,
+    "timeout": 30000,
     "host": "smtp-mail.outlook.com",
     "port": 587,
-    "email": "tutan.cat@gmail.com",
-    "displayName": "tutan.cat@gmail.com",
-    "password": ""
+    "email": "henry_tuori@hotmail.com",
+    "displayName": "henry_tuori@hotmail.com",
+    "password": "aqui nao kkk"
   }
 }

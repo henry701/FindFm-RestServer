@@ -153,8 +153,16 @@ namespace RestServer.Util
             try
             {
                 Stream configData = File.OpenRead(realPath);
+                StreamReader streamReader = new StreamReader(configData);
+
+                string configString = streamReader.ReadToEnd();
+                configString = Environment.ExpandEnvironmentVariables(configString);
+
                 var serializer = new JsonSerializer();
-                config = serializer.Deserialize<ServerConfiguration>(new JsonTextReader(new StreamReader(configData)));
+                config = serializer.Deserialize<ServerConfiguration>
+                (
+                    new JsonTextReader(new StringReader(configString))
+                );
             }
             catch (Exception e)
             {
