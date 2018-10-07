@@ -13,6 +13,7 @@ using RestServer.Model.Http.Response;
 using RestServer.Util;
 using RestServer.Util.Extensions;
 using System.Dynamic;
+using System;
 
 namespace RestServer.Controllers
 {
@@ -84,9 +85,13 @@ namespace RestServer.Controllers
                 GeneralUtils.NotDeactivated(postFilterBuilder)
             );
 
+            var postSortBuilder = new SortDefinitionBuilder<Post>();
+            var postSort = postSortBuilder.Descending(p => p._id);
+
             var posts = (await postCollection.FindAsync(postFilter, new FindOptions<Post>
             {
                 AllowPartialResults = true,
+                Sort = postSort
             })).ToList();
 
             if (posts.Count > 0)
@@ -101,14 +106,15 @@ namespace RestServer.Controllers
                     Message = "Posts encontrados com sucesso!",
                     Data = posts.Select(post => post.BuildPostResponse()),
                 };
-            } else
+            }
+            else
             {
                 return new ResponseBody
                 {
                     Code = ResponseCode.GenericSuccess,
                     Success = true,
                     Message = "Nenhum Post encontrado!",
-                    Data = posts.Select(post => post.BuildPostResponse()),
+                    Data = Array.Empty<Post>(),
                 };
             }
         }
