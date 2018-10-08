@@ -77,6 +77,7 @@ namespace RestServer.Controllers
                     // Only from the most recent seven days
                     new ObjectId(DateTime.UtcNow.Subtract(TimeSpan.FromDays(7)), 0, 0, 0)
                 ),
+                // TODO: Meta words from user preferences
                 postFilterBuilder.Text("postão", new TextSearchOptions
                 {
                     CaseSensitive = false,
@@ -90,7 +91,7 @@ namespace RestServer.Controllers
                 postSortBuilder.MetaTextScore(FirstCharacterToLower(nameof(MetascoredPost.MetaScore)))
             );
 
-            var postsTask = await postCollection.FindAsync(postFilter, new FindOptions<Post, MetascoredPost>
+            var postsCursor = await postCollection.FindAsync(postFilter, new FindOptions<Post, MetascoredPost>
             {
                 AllowPartialResults = true,
                 Limit = 10,
@@ -98,44 +99,7 @@ namespace RestServer.Controllers
                 Projection = postProjection
             });
 
-            var postList = postsTask.ToList();
-
-            if (postList.Count > 0)
-            {               
-                postList.ForEach(async p => await GetPostAuthorAsync(p));
-            }
-
-            return postList;
-        }
-
-        private async Task<User> RetrieveAuthor(Post post)
-        {
-            var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(User));
-
-            var userFilterBuilder = new FilterDefinitionBuilder<User>();
-            var userFilter = userFilterBuilder.And
-            (
-                userFilterBuilder.Eq(u => u._id, post.Poster._id),
-                GeneralUtils.NotDeactivated(userFilterBuilder)
-            );
-
-            var userProjectionBuilder = new ProjectionDefinitionBuilder<User>();
-            var userProjection = userProjectionBuilder
-                .Include(m => m._id)
-                .Include(m => m.FullName)
-                .Include(m => m.Avatar)
-                .Include(m => m.Phone)
-                .Include(m => m.StartDate)
-                .Include(m => m.Email)
-                .Include(m => m.Address)
-                .Include("_t");
-
-            return (await userCollection.FindAsync(userFilter, new FindOptions<User>
-            {
-                Limit = 1,
-                AllowPartialResults = true,
-                Projection = userProjection
-            })).SingleOrDefault();
+            return postsCursor.ToList();
         }
 
         private async Task<IEnumerable<MetascoredAdvertisement>> FetchAds()
@@ -178,20 +142,7 @@ namespace RestServer.Controllers
 
             return adsTask.ToList();
         }
-
-        private async Task GetPostAuthorAsync(Post post)
-        {
-            User user = await RetrieveAuthor(post);
-            if (user == null)
-            {
-                Logger.LogWarning("Post Author was not found! post id: {}, poster id: {}", post._id, post.Poster._id);
-            }
-            else
-            {
-                post.Poster = user;
-            }
-        }
-
+        
         public static string FirstCharacterToLower(string str)
         {
             if (string.IsNullOrEmpty(str) || char.IsLower(str, 0))
