@@ -79,6 +79,16 @@ namespace RestServer.Controllers
                 );
             }
 
+            Task<FileReference> fileReference_Audio = Task.FromResult<FileReference>(null);
+            if (requestBody.AudioId != null)
+            {
+                fileReference_Audio = GeneralUtils.ConsumeReferenceTokenFile(
+                    MongoWrapper,
+                    requestBody.AudioId,
+                    new ObjectId(this.GetCurrentUserId())
+                );
+            }
+
             var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
 
             var creationDate = DateTime.UtcNow;
@@ -93,7 +103,8 @@ namespace RestServer.Controllers
                 FileReferences = new FileReference[]
                 {
                      await fileReference_Imagem,
-                     await fileReference_Video
+                     await fileReference_Video,
+                     await fileReference_Audio
                 }.Where(fr => fr != null).ToList(),
                 Ip = HttpContext.Connection.RemoteIpAddress,
                 Poster = (await userTask).Single()

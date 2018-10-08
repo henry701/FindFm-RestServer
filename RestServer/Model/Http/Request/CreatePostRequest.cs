@@ -17,6 +17,8 @@ namespace RestServer.Model.Http.Request
         public string ImagemId { get; set; }
         [Required]
         public string VideoId { get; set; }
+        [Required]
+        public string AudioId { get; set; }
 
     }
 }
