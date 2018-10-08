@@ -46,8 +46,8 @@ namespace RestServer.Controllers
                 Message = "Feed atualizado com sucesso!",
                 Data = new
                 {
-                    postagens = posts.Select(post => post.BuildPostResponse()),
-                    anuncios = ads,
+                    postagens = posts.Select(post => post.BuildPostResponse()).ToList(),
+                    anuncios = ads.ToList(),
                 }
             };
         }
@@ -177,7 +177,8 @@ namespace RestServer.Controllers
                 Sort = adSort,
                 Projection = adProjection
             });
-            return adsTask.ToEnumerable();
+
+            return adsTask.ToList();
         }
 
         private async Task GetPostAuthorAsync(Post post)
