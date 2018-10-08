@@ -103,11 +103,9 @@ namespace RestServer.Controllers
             if (postList.Count > 0)
             {               
                 postList.ForEach(async p => await GetPostAuthorAsync(p));
-
-                return postList;
             }
 
-            return postsTask.ToEnumerable();
+            return postList;
         }
 
         private async Task<User> RetrieveAuthor(Post post)
