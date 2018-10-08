@@ -1,11 +1,9 @@
 ﻿namespace RestServer.Model.Http.Response
 {
     /// <summary>
-    /// Represents the response body for AJAX requests, and may be used inside the ViewBag to carry
-    /// additional data for the view after a HTTP POST operation.
+    /// Represents the response body envelope for the API requests
     /// </summary>
-    /// <remarks>Public only because of Razor View compilation. Do not use outside the assembly.</remarks>
-    public class ResponseBody
+    internal class ResponseBody
     {
         /// <summary>
         /// Whether the request was successfully processed or not.

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -9,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using RestServer.Infrastructure.AspNetCore;
 using RestServer.Model.Config;
 using RestServer.Model.Http.Response;
 using RestServer.Util;
@@ -33,8 +36,10 @@ namespace RestServer.Controllers
         [HttpGet]
         public async Task<dynamic> Get()
         {
-            var postsTask = FetchPosts();
-            var adsTask = FetchAds();
+            var metaPhrase = await ComputePhraseForUser();
+
+            var postsTask = FetchPosts(metaPhrase);
+            var adsTask = FetchAds(metaPhrase);
 
             var posts = await postsTask;
             var ads = await adsTask;
@@ -46,19 +51,21 @@ namespace RestServer.Controllers
                 Message = "Feed atualizado com sucesso!",
                 Data = new
                 {
-                    postagens = posts.Select(post => post.BuildPostResponse()).ToList(),
-                    anuncios = ads.ToList(),
+                    postagens = posts.Select(post => post.BuildPostResponse()),
+                    anuncios = ads,
                 }
             };
         }
 
-        private async Task<IEnumerable<MetascoredPost>> FetchPosts()
+        private async Task<IEnumerable<MetascoredPost>> FetchPosts(string metaPhrase)
         {
+            var referenceDate = DateTime.UtcNow;
+
             var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
 
             var postProjectionBuilder = new ProjectionDefinitionBuilder<Post>();
             var postProjection = postProjectionBuilder
-                .MetaTextScore(FirstCharacterToLower(nameof(MetascoredPost.MetaScore)))
+                .MetaTextScore(nameof(MetascoredPost.MetaScore).WithLowercaseFirstCharacter())
                 .Include(post => post._id)
                 .Include(post => post.Title)
                 .Include(post => post.Text)
@@ -75,20 +82,26 @@ namespace RestServer.Controllers
                 (
                     post => post._id,
                     // Only from the most recent seven days
-                    new ObjectId(DateTime.UtcNow.Subtract(TimeSpan.FromDays(7)), 0, 0, 0)
+                    new ObjectId(referenceDate.Subtract(TimeSpan.FromDays(7)), 0, 0, 0)
                 ),
-                // TODO: Meta words from user preferences
-                postFilterBuilder.Text("postão", new TextSearchOptions
-                {
-                    CaseSensitive = false,
-                    DiacriticSensitive = false,
-                })
+                postFilterBuilder.Or
+                (
+                    // TODO: Meta words from user preferences
+                    postFilterBuilder.Text(metaPhrase, new TextSearchOptions
+                    {
+                        CaseSensitive = false,
+                        DiacriticSensitive = false,
+                    })
+                    ,
+                    postFilterBuilder.Exists(p => p._id)
+                )
             );
 
             var postSortBuilder = new SortDefinitionBuilder<Post>();
-            var postSort = postSortBuilder.Combine(
-                postSortBuilder.Descending(p => p._id),
-                postSortBuilder.MetaTextScore(FirstCharacterToLower(nameof(MetascoredPost.MetaScore)))
+            var postSort = postSortBuilder.Combine
+            (
+                postSortBuilder.MetaTextScore(nameof(MetascoredPost.MetaScore).WithLowercaseFirstCharacter()),
+                postSortBuilder.Descending(p => p._id)
             );
 
             var postsCursor = await postCollection.FindAsync(postFilter, new FindOptions<Post, MetascoredPost>
@@ -102,13 +115,14 @@ namespace RestServer.Controllers
             return postsCursor.ToList();
         }
 
-        private async Task<IEnumerable<MetascoredAdvertisement>> FetchAds()
+        // TODO: Make it be just like post
+        private async Task<IEnumerable<MetascoredAdvertisement>> FetchAds(string metaPhrase)
         {
             var adCollection = MongoWrapper.Database.GetCollection<Advertisement>(nameof(Advertisement));
 
             var adProjectionBuilder = new ProjectionDefinitionBuilder<Advertisement>();
             var adProjection = adProjectionBuilder
-                .MetaTextScore(FirstCharacterToLower(nameof(MetascoredPost.MetaScore)))
+                .MetaTextScore(nameof(MetascoredPost.MetaScore).WithLowercaseFirstCharacter())
                 .Include(ad => ad._id)
                 .Include(ad => ad.Title)
                 .Include(ad => ad.Text)
@@ -117,19 +131,20 @@ namespace RestServer.Controllers
             ;
 
             var adFilterBuilder = new FilterDefinitionBuilder<Advertisement>();
-            adFilterBuilder.Text("anunciozão", new TextSearchOptions
+            adFilterBuilder.Text(metaPhrase, new TextSearchOptions
             {
                 CaseSensitive = false,
                 DiacriticSensitive = false,
             });
-            var adFilter = adFilterBuilder.Gt(
+            var adFilter = adFilterBuilder.Gt
+            (
                 ad => ad._id,
                 new ObjectId(DateTime.UtcNow.Subtract(TimeSpan.FromDays(16)), 0, 0, 0)
             );
 
             var adSortBuilder = new SortDefinitionBuilder<Advertisement>();
             var adSort = adSortBuilder.Combine(
-                adSortBuilder.MetaTextScore(FirstCharacterToLower(nameof(MetascoredPost.MetaScore)))
+                adSortBuilder.MetaTextScore(nameof(MetascoredPost.MetaScore).WithLowercaseFirstCharacter())
             );
 
             var adsTask = await adCollection.FindAsync(adFilter, new FindOptions<Advertisement, MetascoredAdvertisement>
@@ -142,15 +157,50 @@ namespace RestServer.Controllers
 
             return adsTask.ToList();
         }
-        
-        public static string FirstCharacterToLower(string str)
+
+        private async Task<string> ComputePhraseForUser()
         {
-            if (string.IsNullOrEmpty(str) || char.IsLower(str, 0))
+            var userId = this.GetCurrentUserId();
+
+            if(userId == null)
             {
-                return str;
+                return "";
             }
 
-            return char.ToLowerInvariant(str[0]) + str.Substring(1);
+            var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(User));
+
+            var userFilterBuilder = new FilterDefinitionBuilder<User>();
+            var userFilter = userFilterBuilder.Eq(u => u._id, new ObjectId(userId));
+
+            var user = (await userCollection.FindAsync(userFilter, new FindOptions<User>
+            {
+                AllowPartialResults = true,
+                Limit = 1
+            })).SingleOrDefault();
+
+            if(user == null)
+            {
+                return "";
+            }
+
+            var phrase = string.Empty;
+
+            phrase += user.About;
+
+            if (user is Musician musician)
+            {
+                phrase += musician.InstrumentSkills?.Select
+                (
+                    kvp => kvp.Key.GetAttribute<DisplayAttribute>().Name
+                )
+                .Aggregate
+                (
+                    string.Empty,
+                    (s1, s2) => s1 + " " + s2
+                );
+            }
+
+            return phrase.ToString();
         }
 
         private class MetascoredPost : Post

@@ -1,6 +1,6 @@
 ﻿namespace RestServer.Model.Http.Response
 {
-    public class UnauthorizedResponseBody : ResponseBody
+    internal class UnauthorizedResponseBody : ResponseBody
     {
         public UnauthorizedResponseBody()
         {

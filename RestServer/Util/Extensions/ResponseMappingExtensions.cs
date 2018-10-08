@@ -21,13 +21,13 @@ namespace RestServer.Util.Extensions
                 UsuarioLikes = post.Likes,
                 Criacao = post._id.CreationTime,
                 Midias = post.FileReferences.Select
-                    (
-                        fr => new
-                        {
-                            Id = fr._id.ToString(),
-                            TipoMidia = fr.FileMetadata.FileType.GetAttribute<DisplayAttribute>().ShortName,
-                        }
-                   ),
+                (
+                    fr => new
+                    {
+                        Id = fr._id.ToString(),
+                        TipoMidia = fr.FileMetadata.FileType.GetAttribute<DisplayAttribute>().ShortName,
+                    }
+                ),
                Comentarios = post.Comments.Select(BuildCommentResponse)
             };
         }

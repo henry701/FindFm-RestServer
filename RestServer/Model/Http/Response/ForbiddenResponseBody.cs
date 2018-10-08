@@ -1,6 +1,6 @@
 ﻿namespace RestServer.Model.Http.Response
 {
-    public class ForbiddenResponseBody : ResponseBody
+    internal class ForbiddenResponseBody : ResponseBody
     {
         public ForbiddenResponseBody()
         {
