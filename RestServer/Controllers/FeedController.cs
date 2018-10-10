@@ -34,6 +34,7 @@ namespace RestServer.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<dynamic> Get()
         {
             var metaPhrase = await ComputePhraseForUser();
@@ -185,7 +186,7 @@ namespace RestServer.Controllers
 
             var phrase = string.Empty;
 
-            phrase += user.About;
+            phrase += user.About.Replace("\"", "");
 
             if (user is Musician musician)
             {

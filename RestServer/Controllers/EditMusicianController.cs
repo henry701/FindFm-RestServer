@@ -36,11 +36,8 @@ namespace RestServer.Controllers
                 {
                     City = requestBody.Cidade,
                     State = EnumExtensions.FromShortDisplayName<BrazilState>(requestBody.Uf),
-                    // TODO: Musico nao passa endereço full pq? @Bruno
-                    // Road = requestBody.Endereco,
-                    // Numeration = requestBody.NumeroEndereco,
                 },
-                Phone = ValidationUtils.ValidatePhoneNumber(ParsingUtils.ParsePhoneNumber(requestBody.Telefone)),
+                Phone = ValidationUtils.ValidatePhoneNumber(requestBody.Telefone),
                 Ip = TrackedEntity<IPAddress>.From(HttpContext.Connection.RemoteIpAddress, creationDate),
                 FullName = ValidationUtils.ValidateName(requestBody.NomeCompleto),
                 Password = Encryption.Encrypt(ValidationUtils.ValidatePassword(requestBody.Senha)),
@@ -49,6 +46,7 @@ namespace RestServer.Controllers
                 InstrumentSkills = requestBody.Instrumentos?.DefaultIfEmpty().Where(instr => instr != null).ToDictionary(instr => EnumExtensions.FromDisplayName<Skill>(instr.Nome), el => (SkillLevel)el.NivelHabilidade).ToHashSet(),
                 Works = new HashSet<Work>(),
                 Songs = new HashSet<Song>(),
+                About = requestBody.Sobre,
             });
         }
 

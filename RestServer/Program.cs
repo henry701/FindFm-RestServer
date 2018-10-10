@@ -20,7 +20,6 @@ using MongoDB.Driver;
 using MongoDB.Bson;
 using MongoDB.Driver.GridFS;
 using LiterCast.AudioSources;
-using System.Collections.Generic;
 
 namespace RestServer
 {
@@ -122,7 +121,7 @@ namespace RestServer
 
             (Task hostTask, IWebHost host) = StartHost(serverConfig, serverInfo, mongoWrapper);
 
-            (Task radioTask, RadioCastServer radioCastServer) = StartRadio();
+            (Task radioTask, RadioCastServer radioCastServer) = StartRadio(serverConfig.Radio);
 
             (Task shellTask, FmShell.Shell shell) = StartShell(serverConfig, serverInfo, serverController, radioCastServer);
 
@@ -203,9 +202,9 @@ namespace RestServer
             });
         }
 
-        private static (Task radioTask, RadioCastServer radioCastServer) StartRadio()
+        private static (Task radioTask, RadioCastServer radioCastServer) StartRadio(RadioCasterConfiguration radioCfg)
         {
-            var radioCastServer = new RadioCastServer(new IPEndPoint(IPAddress.Parse("0.0.0.0"), 8084), new RadioInfo());
+            var radioCastServer = new RadioCastServer(new IPEndPoint(IPAddress.Parse(radioCfg.Address), radioCfg.Port), new RadioInfo(radioCfg.IcyMetadataInterval));
             var radioTask = radioCastServer.Start();
             return (radioTask, radioCastServer);
         }

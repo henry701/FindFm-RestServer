@@ -26,6 +26,11 @@ namespace RestServer.Model.Config
         [JsonProperty(PropertyName = "listening", Required = Required.Always)]
         public ListenConfiguration Listening { get; private set; }
 
+        /// <inheritdoc cref="Config.RadioCasterConfiguration"/>
+        [DataMember(Name = "radio", IsRequired = true)]
+        [JsonProperty(PropertyName = "radio", Required = Required.Always)]
+        public RadioCasterConfiguration Radio { get; private set; }
+
         /// <summary>
         /// Whether error traces should be disabled when an error occurs.
         /// Recomended <see langword="true"/> for production.

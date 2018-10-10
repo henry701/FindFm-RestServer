@@ -45,6 +45,7 @@ namespace RestServer.Controllers
                 Password = Encryption.Encrypt(ValidationUtils.ValidatePassword(requestBody.Senha)),
                 PremiumLevel = PremiumLevel.None,
                 Avatar = null,
+                About = requestBody.Sobre,
             });
         }
     }

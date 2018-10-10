@@ -10,6 +10,12 @@
     "basePath": "/"
   },
 
+  "radio": {
+    "address": "0.0.0.0",
+    "port": 8084,
+    "icyMetadataInterval": 8192
+  },
+
   "disableErrorTraces": true,
 
   "consolePrompt": "#FindFMServer>",

@@ -2,20 +2,24 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Models;
 
 namespace RestServer.Model.Http.Request
 {
     [BindRequired]
     internal sealed class EditMusicianRequest : IBasicRegisterBody
     {
-        public string Telefone { get; set; }
+        public PhoneNumber Telefone { get; set; }
         
+        [Required]
         public string Email { get; set; }
         
         public string Senha { get; set; }
 
         public string Foto { get; set; }
-        
+
+        public string Sobre { get; set; }
+
         public string NomeCompleto { get; set; }
         
         public DateTime Nascimento { get; set; }

@@ -17,6 +17,8 @@ namespace RestServer.Model.Http.Request
 
         public string Foto { get; set; }
 
+        public string Sobre { get; set; }
+
         [Required]
         public string NomeCompleto { get; set; }
         [Required]

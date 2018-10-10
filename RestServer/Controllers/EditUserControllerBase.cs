@@ -30,8 +30,8 @@ namespace RestServer.Controllers
             MongoWrapper = mongoWrapper;
         }
 
-        [HttpPost("me")]
-        public async Task<dynamic> Post(TBody requestBody)
+        [HttpPost]
+        public async Task<dynamic> Post([FromBody] TBody requestBody)
         {
             var id = this.GetCurrentUserId();
 

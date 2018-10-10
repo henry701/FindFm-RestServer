@@ -6,6 +6,7 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RestServer", "RestServer\RestServer.csproj", "{30306C0F-D81F-42A3-9B7A-F8C1C4DD4385}"
 	ProjectSection(ProjectDependencies) = postProject
 		{84CF8B89-A256-4B2E-A40F-A7BC9F5129D9} = {84CF8B89-A256-4B2E-A40F-A7BC9F5129D9}
+		{1C7C94F2-5667-4D67-B936-D0EE8E8C55DB} = {1C7C94F2-5667-4D67-B936-D0EE8E8C55DB}
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Models", "sub_modules\FindFm-Models\Models.csproj", "{9E316ADA-5ED8-4A44-B556-88BD26E7FC0B}"
@@ -13,6 +14,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FmShell", "sub_modules\FmShell\FmShell\FmShell.csproj", "{B27AF5C0-C206-4863-AE02-B2807171E384}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LiterCast", "sub_modules\LiterCast\LiterCast\LiterCast.csproj", "{84CF8B89-A256-4B2E-A40F-A7BC9F5129D9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AudioHandler", "sub_modules\FindFm-AudioHandler\AudioHandler.csproj", "{1C7C94F2-5667-4D67-B936-D0EE8E8C55DB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -36,6 +39,10 @@ Global
 		{84CF8B89-A256-4B2E-A40F-A7BC9F5129D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{84CF8B89-A256-4B2E-A40F-A7BC9F5129D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{84CF8B89-A256-4B2E-A40F-A7BC9F5129D9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1C7C94F2-5667-4D67-B936-D0EE8E8C55DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C7C94F2-5667-4D67-B936-D0EE8E8C55DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C7C94F2-5667-4D67-B936-D0EE8E8C55DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C7C94F2-5667-4D67-B936-D0EE8E8C55DB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

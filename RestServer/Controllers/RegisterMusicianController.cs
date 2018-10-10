@@ -48,6 +48,7 @@ namespace RestServer.Controllers
                 InstrumentSkills = requestBody.Instrumentos?.DefaultIfEmpty().Where(instr => instr != null).ToDictionary(instr => EnumExtensions.FromDisplayName<Skill>(instr.Nome), el => (SkillLevel)el.NivelHabilidade).ToHashSet(),
                 Works = new HashSet<Work>(),
                 Songs = new HashSet<Song>(),
+                About = requestBody.Sobre,
             });
         }
     }

@@ -7,5 +7,6 @@ namespace RestServer.Model.Http.Request
         [Required]
         string Email { get; set; }
         string Foto { get; set; }
+        string Sobre { get; set; }
     }
 }

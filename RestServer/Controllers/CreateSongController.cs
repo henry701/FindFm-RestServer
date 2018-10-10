@@ -15,6 +15,9 @@ using RestServer.Model.Http.Response;
 using RestServer.Util;
 using RestServer.Util.Extensions;
 using MongoDB.Driver;
+using MongoDB.Driver.GridFS;
+using RestServer.Interprocess;
+using System.IO;
 
 namespace RestServer.Controllers
 {
@@ -41,7 +44,8 @@ namespace RestServer.Controllers
 
             if (requestBody.MusicaId != null)
             {
-                fileReferenceTask = GeneralUtils.ConsumeReferenceTokenFile(
+                fileReferenceTask = GeneralUtils.ConsumeReferenceTokenFile
+                (
                     MongoWrapper,
                     requestBody.MusicaId,
                     new ObjectId(this.GetCurrentUserId())
@@ -57,6 +61,10 @@ namespace RestServer.Controllers
             );
 
             var fileReference = await fileReferenceTask;
+
+            var audioNormalizeTask = NormalizeAudio(fileReference, requestBody);
+
+            await audioNormalizeTask;
             var audioReference = new AudioReference
             {
                 _id = fileReference._id,
@@ -89,6 +97,30 @@ namespace RestServer.Controllers
                 Message = "Música adicionada com sucesso!",
                 Success = true
             };
+        }
+
+        private async Task NormalizeAudio(FileReference fileReference, CreateSongRequest requestBody)
+        {
+            var oldId = fileReference._id;
+            var newId = ObjectId.GenerateNewId();
+
+            var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database);
+            var downloadStream = await gridFsBucket.OpenDownloadStreamAsync(oldId);
+
+            Stream newAudio = AudioHandlerService.ProcessAudio
+            (
+                downloadStream,
+                null,
+                requestBody.ObraAutoral ? null : new int?(30),
+                requestBody.Titulo,
+                null
+            );
+
+            await gridFsBucket.UploadFromStreamAsync(fileReference._id, fileReference._id.ToString(), newAudio);
+
+            var deleteOldTask = gridFsBucket.DeleteAsync(oldId);
+
+            fileReference._id = newId;
         }
     }
 }
