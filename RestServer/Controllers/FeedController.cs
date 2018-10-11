@@ -185,8 +185,8 @@ namespace RestServer.Controllers
             }
 
             var phrase = string.Empty;
-
-            phrase += user.About.Replace("\"", "");
+            if (user.About != null)
+                phrase += user.About.Replace("\"", "");
 
             if (user is Musician musician)
             {
