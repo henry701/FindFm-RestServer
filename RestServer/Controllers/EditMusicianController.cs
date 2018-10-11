@@ -62,6 +62,7 @@ namespace RestServer.Controllers
                 .Set(u => u.Password, newUser.Password)
                 .Set(u => u.Phone, newUser.Phone)
                 .Set(u => u.Avatar, newUser.Avatar)
+                .Set(u => u.About, newUser.About)
                 .Set(u => u.InstrumentSkills, newUser.InstrumentSkills);
             return Task.FromResult(userUpdate);
         }
