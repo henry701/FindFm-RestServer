@@ -11,6 +11,9 @@ Terminar EditUserControllerBase e implementar seus 2 descendentes
 
 Fazer o Criar Anuncio
 
+Atualizar usuário
+	-TODO: Colocar a task para atualizar o avatar do mano
+
 Fazer o Enviar Música
 	- TODO: Todo o processamento e normalização de música, achar uma lib compatível com ASP.Net Core que trate pelo
 	menos MP3 corretamente para isso, e converta para um bitrate constante de mp3 para a rádio ou para tocar as músicas.

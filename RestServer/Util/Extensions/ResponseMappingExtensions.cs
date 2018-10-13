@@ -71,7 +71,7 @@ namespace RestServer.Util.Extensions
             userObj.usuario.fullName = user.FullName;
             userObj.usuario.telefone = user.Phone;
             userObj.usuario.Kind = user.Kind;
-
+            userObj.usuario.sobre = user.About;
             if (user is Musician musician)
             {
                 IncrementMusicianObject(musician, userObj);
