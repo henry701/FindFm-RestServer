@@ -94,4 +94,8 @@
     </None>
   </ItemGroup>
 
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="echo D | xcopy &quot;$(SolutionDir)sub_modules\FindFm-AudioHandler\bin\$(ConfigurationName)&quot; &quot;$(TargetDir)FindFm-AudioHandler&quot; /E /Y /I" />
+  </Target>
+
 </Project>

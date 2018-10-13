@@ -127,7 +127,7 @@ namespace RestServer
 
             Task radioFeeder = StartRadioFeeder(radioCastServer, mongoWrapper);
 
-            await AwaitTermination(shellTask, shell, hostTask, host);
+            await AwaitTermination(shellTask, shell, hostTask, host, radioFeeder);
 
             radioCastServer.Dispose();
         }
@@ -143,7 +143,7 @@ namespace RestServer
             var userFilter = userFilterBuilder.And
             (
                 GeneralUtils.NotDeactivated(userFilterBuilder),
-                userFilterBuilder.Eq("_t", nameof(Models.Musician))
+                userFilterBuilder.AnyEq("_t", nameof(Models.Musician))
             );
 
             var songFilterBuilder = new FilterDefinitionBuilder<Models.Song>();
@@ -154,20 +154,22 @@ namespace RestServer
                 songFilterBuilder.Eq(s => s.Original, true)
             );
 
+            var projectionBuilder = new ProjectionDefinitionBuilder<Models.Musician>();
+            var projection = projectionBuilder.Include(m => m.FullName).Include(m => m.Songs);
+
             var pipeline = PipelineDefinitionBuilder
                 .For<Models.Musician>()
-                .AppendStage(PipelineStageDefinitionBuilder.Match(userFilter))
-                .Unwind(m => m.Songs, new AggregateUnwindOptions<Models.Song>
+                .Match(userFilter)
+                .Unwind(m => m.Songs, new AggregateUnwindOptions<Models.Musician>
                 {
                     PreserveNullAndEmptyArrays = false,
                     IncludeArrayIndex = null,
                 })
-                .AppendStage(PipelineStageDefinitionBuilder.Match(songFilter))
-                .AppendStage(PipelineStageDefinitionBuilder.Sort(songSort))
-                .AppendStage(PipelineStageDefinitionBuilder.Limit<Models.Song>(1));
-
-            var projectionBuilder = new ProjectionDefinitionBuilder<Models.Musician>();
-            var projection = projectionBuilder.Include(m => m.FullName).Include(m => m.Songs);
+                // Cast because is unwinded, single object now
+                .ReplaceRoot(m => (Models.Song) m.Songs)
+                .Match(songFilter)
+                .Sort(songSort)
+                .Limit(1);
 
             var fsBucket = new GridFSBucket<ObjectId>(mongoWrapper.Database);
 
@@ -192,7 +194,11 @@ namespace RestServer
                     }
                     var audioRef = firstSong.AudioReference;
                     var gridId = audioRef._id;
-                    var fileStreamTask = fsBucket.OpenDownloadStreamAsync(gridId);
+                    var fileStreamTask = fsBucket.OpenDownloadStreamAsync(gridId, new GridFSDownloadOptions
+                    {
+                        Seekable = true,
+                        CheckMD5 = false,
+                    });
                     // Wait for the radio to need more songs before we add the track
                     SpinWait.SpinUntil(() => radioCastServer.TrackCount <= 1);
                     radioCastServer.AddTrack(new FileAudioSource(await fileStreamTask, firstSong.Name));
@@ -209,9 +215,9 @@ namespace RestServer
             return (radioTask, radioCastServer);
         }
 
-        private static async Task AwaitTermination(Task shellTask, FmShell.Shell shell, Task hostTask, IWebHost host)
+        private static async Task AwaitTermination(Task shellTask, FmShell.Shell shell, Task hostTask, IWebHost host, Task radioFeeder)
         {
-            Task.WaitAny(shellTask, hostTask);
+            Task.WaitAny(shellTask, hostTask, radioFeeder);
 
             if (shellTask.IsCompleted)
             {
@@ -233,6 +239,16 @@ namespace RestServer
                 if (hostTask.Exception?.InnerExceptions?.Count > 0)
                 {
                     throw hostTask.Exception;
+                }
+            }
+            else if (radioFeeder.IsCompleted)
+            {
+                LOGGER.Info("Radio has been shutdown. Shutting down server and shell as well.");
+                await host.StopAsync(TimeSpan.FromMinutes(1));
+                shell.Stop();
+                if (radioFeeder.Exception?.InnerExceptions?.Count > 0)
+                {
+                    throw radioFeeder.Exception;
                 }
             }
         }

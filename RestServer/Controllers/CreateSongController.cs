@@ -18,6 +18,8 @@ using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
 using RestServer.Interprocess;
 using System.IO;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.IO;
 
 namespace RestServer.Controllers
 {
@@ -107,20 +109,38 @@ namespace RestServer.Controllers
             var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database);
             var downloadStream = await gridFsBucket.OpenDownloadStreamAsync(oldId);
 
-            Stream newAudio = AudioHandlerService.ProcessAudio
+            Stream newAudio = await AudioHandlerService.ProcessAudio
             (
                 downloadStream,
-                null,
                 requestBody.ObraAutoral ? null : new int?(30),
                 requestBody.Titulo,
-                null
+                "TODOAutor",
+                fileReference.FileMetadata.ContentType
             );
 
-            await gridFsBucket.UploadFromStreamAsync(fileReference._id, fileReference._id.ToString(), newAudio);
+            fileReference._id = newId;
+            if (fileReference.FileMetadata == null)
+            {
+                fileReference.FileMetadata = new AudioMetadata();
+            }
+            fileReference.FileMetadata.ContentType = "audio/mpeg";
+            fileReference.FileMetadata.FileType = FileType.Audio;
+
+            var uploadStream = await gridFsBucket.OpenUploadStreamAsync
+            (
+                newId,
+                newId.ToString(),
+                new GridFSUploadOptions
+                {
+                    Metadata = fileReference.FileMetadata.ToBsonDocument(),
+                }
+            );
+
+            await newAudio.CopyToAsync(uploadStream);
+
+            await uploadStream.CloseAsync();
 
             var deleteOldTask = gridFsBucket.DeleteAsync(oldId);
-
-            fileReference._id = newId;
         }
     }
 }

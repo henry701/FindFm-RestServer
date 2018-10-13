@@ -82,12 +82,10 @@ namespace RestServer.Controllers
                 postFilterBuilder.Gt
                 (
                     post => post._id,
-                    // Only from the most recent seven days
                     new ObjectId(referenceDate.Subtract(TimeSpan.FromDays(7)), 0, 0, 0)
                 ),
                 postFilterBuilder.Or
                 (
-                    // TODO: Meta words from user preferences
                     postFilterBuilder.Text(metaPhrase, new TextSearchOptions
                     {
                         CaseSensitive = false,
@@ -140,18 +138,19 @@ namespace RestServer.Controllers
             var adFilter = adFilterBuilder.Gt
             (
                 ad => ad._id,
-                new ObjectId(DateTime.UtcNow.Subtract(TimeSpan.FromDays(16)), 0, 0, 0)
+                new ObjectId(DateTime.UtcNow.Subtract(TimeSpan.FromDays(32)), 0, 0, 0)
             );
 
             var adSortBuilder = new SortDefinitionBuilder<Advertisement>();
-            var adSort = adSortBuilder.Combine(
+            var adSort = adSortBuilder.Combine
+            (
                 adSortBuilder.MetaTextScore(nameof(MetascoredPost.MetaScore).WithLowercaseFirstCharacter())
             );
 
             var adsTask = await adCollection.FindAsync(adFilter, new FindOptions<Advertisement, MetascoredAdvertisement>
             {
                 AllowPartialResults = true,
-                Limit = 1,
+                Limit = 2,
                 Sort = adSort,
                 Projection = adProjection
             });
@@ -186,7 +185,10 @@ namespace RestServer.Controllers
 
             var phrase = string.Empty;
 
-            phrase += user.About.Replace("\"", "");
+            if (!string.IsNullOrWhiteSpace(user.About))
+            {
+                phrase += user.About.Replace("\"", "");
+            }
 
             if (user is Musician musician)
             {
