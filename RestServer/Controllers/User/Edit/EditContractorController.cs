@@ -49,7 +49,18 @@ namespace RestServer.Controllers
 
         protected override Task<UpdateDefinition<Contractor>> CreateUpdateDefinition(Contractor oldUser, Contractor newUser)
         {
-            throw new NotImplementedException();
+            var userUpdateBuilder = new UpdateDefinitionBuilder<Contractor>();
+            var userUpdate = userUpdateBuilder
+                .Set(u => u.Address, newUser.Address)
+                .Set(u => u.Avatar, newUser.Avatar)
+                .Set(u => u.StartDate, newUser.StartDate)
+                .Set(u => u.Email, newUser.Email)
+                .Set(u => u.FullName, newUser.FullName)
+                .Set(u => u.Password, newUser.Password)
+                .Set(u => u.Phone, newUser.Phone)
+                .Set(u => u.Avatar, newUser.Avatar)
+                .Set(u => u.About, newUser.About);
+            return Task.FromResult(userUpdate);
         }
     }
 }

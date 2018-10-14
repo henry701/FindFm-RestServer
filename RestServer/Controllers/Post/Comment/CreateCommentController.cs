@@ -16,15 +16,15 @@ namespace RestServer.Controllers
 {
     [Route("/post/comment")]
     [Controller]
-    internal sealed class CommentsController : ControllerBase
+    internal sealed class CreateCommentController : ControllerBase
     {
-        private readonly ILogger<CommentsController> Logger;
+        private readonly ILogger<CreateCommentController> Logger;
         private readonly MongoWrapper MongoWrapper;
 
-        public CommentsController(MongoWrapper mongoWrapper, ILogger<CommentsController> logger)
+        public CreateCommentController(MongoWrapper mongoWrapper, ILogger<CreateCommentController> logger)
         {
             Logger = logger;
-            Logger.LogTrace($"{nameof(CommentsController)} Constructor Invoked");
+            Logger.LogTrace($"{nameof(CreateCommentController)} Constructor Invoked");
             MongoWrapper = mongoWrapper;
         }
 

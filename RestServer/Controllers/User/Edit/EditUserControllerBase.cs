@@ -15,6 +15,7 @@ using RestServer.Util.Extensions;
 using System.Dynamic;
 using RestServer.Model.Http.Request;
 using System;
+using MongoDB.Driver.GridFS;
 
 namespace RestServer.Controllers
 {
@@ -63,6 +64,10 @@ namespace RestServer.Controllers
             }
 
             var newUser = await newUserTask;
+
+            var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database);
+            await this.UploadPhoto(requestBody.Foto, gridFsBucket, newUser, creationDate);
+
             var userUpdate = await CreateUpdateDefinition(oldUser, newUser);
 
             if (oldUser.Email != oldUser.Email)
@@ -84,7 +89,6 @@ namespace RestServer.Controllers
             var postUpdate = postUpdateBuilder.Set(p => p.Poster.Avatar, newUser.Avatar)
                                               .Set(p => p.Poster.FullName, newUser.FullName);
 
-
             var commentFilterBuilder = new FilterDefinitionBuilder<Comment>();
             var commentFilter = commentFilterBuilder.Eq(c => c._id, oldUser._id);
             var postCommentFilterBuilder = new FilterDefinitionBuilder<Post>();
@@ -97,8 +101,6 @@ namespace RestServer.Controllers
             var postCommentUpdate = postUpdateBuilder
                                              .Set(p => p.Comments[-1].Commenter.Avatar, newUser.Avatar)
                                              .Set(p => p.Comments[-1].Commenter.FullName, newUser.FullName);
-
-            
 
             var postUpdateTask = postCollection.UpdateManyAsync(postFilter, postUpdate);
 
