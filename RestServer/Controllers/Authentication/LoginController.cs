@@ -3,16 +3,15 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Models;
 using MongoDB.Driver;
-using RestServer.Http.Request;
 using RestServer.Infrastructure.AspNetCore;
 using RestServer.Model.Config;
+using RestServer.Model.Http.Request;
 using RestServer.Model.Http.Response;
 using RestServer.Util;
 using RestServer.Util.Extensions;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.Authentication
 {
     [Route("/login")]
     [Controller]
@@ -40,22 +39,22 @@ namespace RestServer.Controllers
         {
             this.EnsureModelValidation();
 
-            var collection = MongoWrapper.Database.GetCollection<User>(nameof(User));
+            var collection = MongoWrapper.Database.GetCollection<Models.User>(nameof(User));
 
-            var projectionBuilder = new ProjectionDefinitionBuilder<User>();
+            var projectionBuilder = new ProjectionDefinitionBuilder<Models.User>();
             var projection = projectionBuilder
                              .Include(u => u.Password)
                              .Include(u => u.Avatar)
                              .Include(u => u.FullName)
                              .Include("_t");
 
-            var filterBuilder = new FilterDefinitionBuilder<User>();
+            var filterBuilder = new FilterDefinitionBuilder<Models.User>();
             var filter = filterBuilder.And(
                 filterBuilder.Eq(u => u.Email, requestBody.Email),
                 GeneralUtils.NotDeactivated(filterBuilder)
             );
 
-            var user = (await collection.FindAsync(filter, new FindOptions<User>
+            var user = (await collection.FindAsync(filter, new FindOptions<Models.User>
             {
                 Limit = 1,
                 Projection = projection,

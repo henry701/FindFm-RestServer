@@ -12,7 +12,7 @@ using RestServer.Model.Http.Request;
 using RestServer.Util;
 using RestServer.Util.Extensions;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.User.Register
 {
     [Route("/register/contractor")]
     [Controller]
@@ -23,7 +23,7 @@ namespace RestServer.Controllers
 
         }
 
-        protected override async Task<User> BindUser(RegisterContractorRequest requestBody, DateTime creationDate)
+        protected override async Task<Models.User> BindUser(RegisterContractorRequest requestBody, DateTime creationDate)
         {
             return await Task.Run(() => new Contractor()
             {

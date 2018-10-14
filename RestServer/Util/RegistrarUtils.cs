@@ -13,9 +13,9 @@ namespace RestServer.Util
 {
     internal static class RegistrarUtils
     {
-        public static async Task TestUserExists(this ControllerBase controller, IMongoCollection<User> userCollection, string email)
+        public static async Task TestUserExists(this ControllerBase controller, IMongoCollection<Models.User> userCollection, string email)
         {
-            var filterBuilder = new FilterDefinitionBuilder<User>();
+            var filterBuilder = new FilterDefinitionBuilder<Models.User>();
             var filter = filterBuilder.And(
                 filterBuilder.Eq(u => u.Email, email),
                 GeneralUtils.NotDeactivated(filterBuilder)

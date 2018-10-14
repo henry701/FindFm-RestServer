@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using RestServer.Model.Http.Response;
-using Util.Extensions;
+using RestServer.Util.Extensions;
 
 namespace RestServer.Infrastructure.AspNetCore.Middleware
 {

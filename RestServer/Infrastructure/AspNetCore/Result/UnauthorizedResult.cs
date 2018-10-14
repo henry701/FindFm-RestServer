@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using RestServer.Model.Http.Response;
 
-namespace RestServer.Infrastructure.AspNetCore
+namespace RestServer.Infrastructure.AspNetCore.Result
 {
     internal class UnauthorizedResult : IActionResult
     {

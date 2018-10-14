@@ -17,7 +17,7 @@ using RestServer.Model.Http.Response;
 using RestServer.Util;
 using RestServer.Util.Extensions;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.Other
 {
     [Route("/feed")]
     [Controller]
@@ -62,9 +62,9 @@ namespace RestServer.Controllers
         {
             var referenceDate = DateTime.UtcNow;
 
-            var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
+            var postCollection = MongoWrapper.Database.GetCollection<Models.Post>(nameof(Models.Post));
 
-            var postProjectionBuilder = new ProjectionDefinitionBuilder<Post>();
+            var postProjectionBuilder = new ProjectionDefinitionBuilder<Models.Post>();
             var postProjection = postProjectionBuilder
                 .MetaTextScore(nameof(MetascoredPost.MetaScore).WithLowercaseFirstCharacter())
                 .Include(post => post._id)
@@ -76,7 +76,7 @@ namespace RestServer.Controllers
                 .Include(post => post.Comments)
             ;
 
-            var postFilterBuilder = new FilterDefinitionBuilder<Post>();
+            var postFilterBuilder = new FilterDefinitionBuilder<Models.Post>();
             var postFilter = postFilterBuilder.And
             (
                 postFilterBuilder.Gt
@@ -96,14 +96,14 @@ namespace RestServer.Controllers
                 )
             );
 
-            var postSortBuilder = new SortDefinitionBuilder<Post>();
+            var postSortBuilder = new SortDefinitionBuilder<Models.Post>();
             var postSort = postSortBuilder.Combine
             (
                 postSortBuilder.MetaTextScore(nameof(MetascoredPost.MetaScore).WithLowercaseFirstCharacter()),
                 postSortBuilder.Descending(p => p._id)
             );
 
-            var postsCursor = await postCollection.FindAsync(postFilter, new FindOptions<Post, MetascoredPost>
+            var postsCursor = await postCollection.FindAsync(postFilter, new FindOptions<Models.Post, MetascoredPost>
             {
                 AllowPartialResults = true,
                 Limit = 10,
@@ -117,9 +117,9 @@ namespace RestServer.Controllers
         // TODO: Make it be just like post
         private async Task<IEnumerable<MetascoredAdvertisement>> FetchAds(string metaPhrase)
         {
-            var adCollection = MongoWrapper.Database.GetCollection<Advertisement>(nameof(Advertisement));
+            var adCollection = MongoWrapper.Database.GetCollection<Models.Advertisement>(nameof(Models.Advertisement));
 
-            var adProjectionBuilder = new ProjectionDefinitionBuilder<Advertisement>();
+            var adProjectionBuilder = new ProjectionDefinitionBuilder<Models.Advertisement>();
             var adProjection = adProjectionBuilder
                 .MetaTextScore(nameof(MetascoredPost.MetaScore).WithLowercaseFirstCharacter())
                 .Include(ad => ad._id)
@@ -129,7 +129,7 @@ namespace RestServer.Controllers
                 .Include(ad => ad.FileReference)
             ;
 
-            var adFilterBuilder = new FilterDefinitionBuilder<Advertisement>();
+            var adFilterBuilder = new FilterDefinitionBuilder<Models.Advertisement>();
             adFilterBuilder.Text(metaPhrase, new TextSearchOptions
             {
                 CaseSensitive = false,
@@ -141,13 +141,13 @@ namespace RestServer.Controllers
                 new ObjectId(DateTime.UtcNow.Subtract(TimeSpan.FromDays(32)), 0, 0, 0)
             );
 
-            var adSortBuilder = new SortDefinitionBuilder<Advertisement>();
+            var adSortBuilder = new SortDefinitionBuilder<Models.Advertisement>();
             var adSort = adSortBuilder.Combine
             (
                 adSortBuilder.MetaTextScore(nameof(MetascoredPost.MetaScore).WithLowercaseFirstCharacter())
             );
 
-            var adsTask = await adCollection.FindAsync(adFilter, new FindOptions<Advertisement, MetascoredAdvertisement>
+            var adsTask = await adCollection.FindAsync(adFilter, new FindOptions<Models.Advertisement, MetascoredAdvertisement>
             {
                 AllowPartialResults = true,
                 Limit = 2,
@@ -167,12 +167,12 @@ namespace RestServer.Controllers
                 return "";
             }
 
-            var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(User));
+            var userCollection = MongoWrapper.Database.GetCollection<Models.User>(nameof(Models.User));
 
-            var userFilterBuilder = new FilterDefinitionBuilder<User>();
+            var userFilterBuilder = new FilterDefinitionBuilder<Models.User>();
             var userFilter = userFilterBuilder.Eq(u => u._id, new ObjectId(userId));
 
-            var user = (await userCollection.FindAsync(userFilter, new FindOptions<User>
+            var user = (await userCollection.FindAsync(userFilter, new FindOptions<Models.User>
             {
                 AllowPartialResults = true,
                 Limit = 1
@@ -206,12 +206,12 @@ namespace RestServer.Controllers
             return phrase.ToString();
         }
 
-        private class MetascoredPost : Post
+        private class MetascoredPost : Models.Post
         {
             public double MetaScore { get; set; }
         }
 
-        private class MetascoredAdvertisement : Advertisement
+        private class MetascoredAdvertisement : Models.Advertisement
         {
             public double MetaScore { get; set; }
         }

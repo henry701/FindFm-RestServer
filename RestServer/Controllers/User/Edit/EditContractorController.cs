@@ -12,7 +12,7 @@ using RestServer.Model.Http.Request;
 using RestServer.Util;
 using RestServer.Util.Extensions;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.User.Edit
 {
     [Controller]
     [Route("/editSelf/contractor")]

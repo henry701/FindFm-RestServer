@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Routing;
 
-namespace Util.Extensions
+namespace RestServer.Util.Extensions
 {
     internal static class HttpContextExtensions
     {

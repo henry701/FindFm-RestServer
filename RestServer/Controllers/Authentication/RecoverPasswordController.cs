@@ -14,7 +14,7 @@ using RestServer.Model.Http.Response;
 using RestServer.Util;
 using RestServer.Util.Extensions;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.Authentication
 {
     [Route("/passwordRecovery")]
     [Controller]
@@ -37,7 +37,7 @@ namespace RestServer.Controllers
         public async Task<dynamic> Get(string token)
         {
             var tokenCollection = MongoWrapper.Database.GetCollection<ReferenceToken>(nameof(ReferenceToken));
-            var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(Models.User));
+            var userCollection = MongoWrapper.Database.GetCollection<Models.User>(nameof(Models.User));
 
             var randomPasswordTask = GeneralUtils.GenerateRandomString(
                 10,
@@ -74,7 +74,7 @@ namespace RestServer.Controllers
                 };
             }
 
-            var userFilterBuilder = new FilterDefinitionBuilder<User>();
+            var userFilterBuilder = new FilterDefinitionBuilder<Models.User>();
             var userFilter = userFilterBuilder.And
             (
                 userFilterBuilder.Eq(user => user._id, oldConfirmation.UserId),
@@ -84,7 +84,7 @@ namespace RestServer.Controllers
             var randomPassword = await randomPasswordTask;
             var randomPassEncrypted = Encryption.Encrypt(randomPassword);
 
-            var userUpdateBuilder = new UpdateDefinitionBuilder<User>();
+            var userUpdateBuilder = new UpdateDefinitionBuilder<Models.User>();
             var userUpdate = userUpdateBuilder.Set(user => user.Password, randomPassEncrypted);
 
             await userCollection.UpdateOneAsync(userFilter, userUpdate);
@@ -104,22 +104,22 @@ namespace RestServer.Controllers
         {
             this.EnsureModelValidation();
 
-            var collection = MongoWrapper.Database.GetCollection<User>(nameof(User));
+            var collection = MongoWrapper.Database.GetCollection<Models.User>(nameof(User));
 
-            var projectionBuilder = new ProjectionDefinitionBuilder<User>();
+            var projectionBuilder = new ProjectionDefinitionBuilder<Models.User>();
             var projection = projectionBuilder
                              .Include(u => u._id)
                              .Include(u => u.Email)
                              .Include(u => u.FullName)
                              .Include("_t");
 
-            var filterBuilder = new FilterDefinitionBuilder<User>();
+            var filterBuilder = new FilterDefinitionBuilder<Models.User>();
             var filter = filterBuilder.And(
                 filterBuilder.Eq(u => u.Email, requestBody.Email),
                 GeneralUtils.NotDeactivated(filterBuilder)
             );
 
-            var user = (await collection.FindAsync(filter, new FindOptions<User>
+            var user = (await collection.FindAsync(filter, new FindOptions<Models.User>
             {
                 Limit = 1,
                 Projection = projection,

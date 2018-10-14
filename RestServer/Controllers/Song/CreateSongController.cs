@@ -21,7 +21,7 @@ using System.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.IO;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.Song
 {
     [Route("/song/create")]
     [Controller]
@@ -54,9 +54,9 @@ namespace RestServer.Controllers
                 );
             }
 
-            var userCollection = MongoWrapper.Database.GetCollection<Musician>(nameof(User));
+            var userCollection = MongoWrapper.Database.GetCollection<Models.Musician>(nameof(User));
 
-            var userFilterBuilder = new FilterDefinitionBuilder<Musician>();
+            var userFilterBuilder = new FilterDefinitionBuilder<Models.Musician>();
             var userFilter = userFilterBuilder.And(
                 GeneralUtils.NotDeactivated(userFilterBuilder),
                 userFilterBuilder.Eq(u => u._id, userId)
@@ -75,7 +75,7 @@ namespace RestServer.Controllers
             };
 
             var creationDate = DateTime.UtcNow;
-            var song = new Song
+            var song = new Models.Song
             {
                 _id = ObjectId.GenerateNewId(creationDate),
                 Name = requestBody.Titulo,
@@ -87,7 +87,7 @@ namespace RestServer.Controllers
                 TimesPlayedRadio = 0,
             };
 
-            var userUpdateBuilder = new UpdateDefinitionBuilder<Musician>();
+            var userUpdateBuilder = new UpdateDefinitionBuilder<Models.Musician>();
             var userUpdate = userUpdateBuilder.AddToSet(m => m.Songs, song);
 
             var updateResult = await userCollection.UpdateOneAsync(userFilter, userUpdate);

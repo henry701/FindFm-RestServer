@@ -15,7 +15,7 @@ using RestServer.Util.Extensions;
 using System.Dynamic;
 using System;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.Post
 {
     [Route("/post/")]
     [Controller]
@@ -35,16 +35,16 @@ namespace RestServer.Controllers
         [HttpGet("{id}")]
         public async Task<dynamic> GetById(string id)
         {
-            var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
+            var postCollection = MongoWrapper.Database.GetCollection<Models.Post>(nameof(Models.Post));
 
-            var postFilterBuilder = new FilterDefinitionBuilder<Post>();
+            var postFilterBuilder = new FilterDefinitionBuilder<Models.Post>();
             var postFilter = postFilterBuilder.And
             (
                 postFilterBuilder.Eq(u => u._id, new ObjectId(id)),
                 GeneralUtils.NotDeactivated(postFilterBuilder)
             );
 
-            var post = (await postCollection.FindAsync(postFilter, new FindOptions<Post>
+            var post = (await postCollection.FindAsync(postFilter, new FindOptions<Models.Post>
             {
                 Limit = 1,
             })).SingleOrDefault();
@@ -60,7 +60,7 @@ namespace RestServer.Controllers
                 };
             }
 
-            User user = await RetrieveAuthor(post);
+            Models.User user = await RetrieveAuthor(post);
             EnrichPostWithAuthor(post, user);
 
             return new ResponseBody
@@ -76,19 +76,19 @@ namespace RestServer.Controllers
         [HttpGet("author/{id}")]
         public async Task<dynamic> GetByAuthorId(string id)
         {
-            var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
+            var postCollection = MongoWrapper.Database.GetCollection<Models.Post>(nameof(Models.Post));
 
-            var postFilterBuilder = new FilterDefinitionBuilder<Post>();
+            var postFilterBuilder = new FilterDefinitionBuilder<Models.Post>();
             var postFilter = postFilterBuilder.And
             (
                 postFilterBuilder.Eq(p => p.Poster._id, new ObjectId(id)),
                 GeneralUtils.NotDeactivated(postFilterBuilder)
             );
 
-            var postSortBuilder = new SortDefinitionBuilder<Post>();
+            var postSortBuilder = new SortDefinitionBuilder<Models.Post>();
             var postSort = postSortBuilder.Descending(p => p._id);
 
-            var posts = (await postCollection.FindAsync(postFilter, new FindOptions<Post>
+            var posts = (await postCollection.FindAsync(postFilter, new FindOptions<Models.Post>
             {
                 AllowPartialResults = true,
                 Sort = postSort
@@ -96,7 +96,7 @@ namespace RestServer.Controllers
 
             if (posts.Count > 0)
             {
-                User user = await RetrieveAuthor(posts.First());
+                Models.User user = await RetrieveAuthor(posts.First());
                 posts.ForEach(p => EnrichPostWithAuthor(p, user));
 
                 return new ResponseBody
@@ -114,12 +114,12 @@ namespace RestServer.Controllers
                     Code = ResponseCode.GenericSuccess,
                     Success = true,
                     Message = "Nenhum Post encontrado!",
-                    Data = Array.Empty<Post>(),
+                    Data = Array.Empty<Models.Post>(),
                 };
             }
         }
 
-        private void EnrichPostWithAuthor(Post post, User user)
+        private void EnrichPostWithAuthor(Models.Post post, Models.User user)
         {
             if (user == null)
             {
@@ -131,18 +131,18 @@ namespace RestServer.Controllers
             }
         }
 
-        private async Task<User> RetrieveAuthor(Post post)
+        private async Task<Models.User> RetrieveAuthor(Models.Post post)
         {
-            var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(User));
+            var userCollection = MongoWrapper.Database.GetCollection<Models.User>(nameof(User));
 
-            var userFilterBuilder = new FilterDefinitionBuilder<User>();
+            var userFilterBuilder = new FilterDefinitionBuilder<Models.User>();
             var userFilter = userFilterBuilder.And
             (
                 userFilterBuilder.Eq(u => u._id, post.Poster._id),
                 GeneralUtils.NotDeactivated(userFilterBuilder)
             );
 
-            var userProjectionBuilder = new ProjectionDefinitionBuilder<User>();
+            var userProjectionBuilder = new ProjectionDefinitionBuilder<Models.User>();
             var userProjection = userProjectionBuilder
                 .Include(m => m._id)
                 .Include(m => m.FullName)
@@ -153,7 +153,7 @@ namespace RestServer.Controllers
                 .Include(m => m.Address)
                 .Include("_t");
 
-            return (await userCollection.FindAsync(userFilter, new FindOptions<User>
+            return (await userCollection.FindAsync(userFilter, new FindOptions<Models.User>
             {
                 Limit = 1,
                 AllowPartialResults = true,

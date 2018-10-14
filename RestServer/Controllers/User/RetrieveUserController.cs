@@ -14,7 +14,7 @@ using RestServer.Util;
 using RestServer.Util.Extensions;
 using System.Dynamic;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.User
 {
     [Route("/account")]
     [Controller]
@@ -34,16 +34,16 @@ namespace RestServer.Controllers
         [HttpGet("{id}")]
         public async Task<dynamic> Get(string id)
         {
-            var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(User));
+            var userCollection = MongoWrapper.Database.GetCollection<Models.User>(nameof(Models.User));
 
-            var userFilterBuilder = new FilterDefinitionBuilder<User>();
+            var userFilterBuilder = new FilterDefinitionBuilder<Models.User>();
             var userFilter = userFilterBuilder.And
             (
                 userFilterBuilder.Eq(u => u._id, new ObjectId(id)),
                 GeneralUtils.NotDeactivated(userFilterBuilder)
             );
 
-            var user = (await userCollection.FindAsync(userFilter, new FindOptions<User>
+            var user = (await userCollection.FindAsync(userFilter, new FindOptions<Models.User>
             {
                 Limit = 1,
             })).SingleOrDefault();
@@ -72,16 +72,16 @@ namespace RestServer.Controllers
         {
             var id = this.GetCurrentUserId();
 
-            var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(User));
+            var userCollection = MongoWrapper.Database.GetCollection<Models.User>(nameof(Models.User));
 
-            var userFilterBuilder = new FilterDefinitionBuilder<User>();
+            var userFilterBuilder = new FilterDefinitionBuilder<Models.User>();
             var userFilter = userFilterBuilder.And
             (
                 userFilterBuilder.Eq(u => u._id, new ObjectId(id)),
                 GeneralUtils.NotDeactivated(userFilterBuilder)
             );
 
-            var user = (await userCollection.FindAsync(userFilter, new FindOptions<User>
+            var user = (await userCollection.FindAsync(userFilter, new FindOptions<Models.User>
             {
                 Limit = 1,
             })).SingleOrDefault();

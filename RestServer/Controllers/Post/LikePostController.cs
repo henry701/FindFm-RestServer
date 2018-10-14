@@ -9,7 +9,7 @@ using RestServer.Model.Http.Response;
 using RestServer.Util;
 using RestServer.Util.Extensions;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.Post
 {
     [Route("/post/like")]
     [Controller]
@@ -28,9 +28,9 @@ namespace RestServer.Controllers
         [HttpGet("{id}")]
         public async Task<dynamic> LikeById(string id)
         {
-            var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
+            var postCollection = MongoWrapper.Database.GetCollection<Models.Post>(nameof(Models.Post));
 
-            var postFilterBuilder = new FilterDefinitionBuilder<Post>();
+            var postFilterBuilder = new FilterDefinitionBuilder<Models.Post>();
             var postFilter = postFilterBuilder.And
             (
                 postFilterBuilder.Eq(u => u._id, new ObjectId(id)),
@@ -39,7 +39,7 @@ namespace RestServer.Controllers
 
             ObjectId currentUserId = new ObjectId(this.GetCurrentUserId());
 
-            var postUpdateBuilder = new UpdateDefinitionBuilder<Post>();
+            var postUpdateBuilder = new UpdateDefinitionBuilder<Models.Post>();
             var postUpdate = postUpdateBuilder.AddToSet(p => p.Likes, currentUserId);
 
             var updateResult = await postCollection.UpdateOneAsync(
@@ -69,9 +69,9 @@ namespace RestServer.Controllers
         [HttpDelete("{id}")]
         public async Task<dynamic> UnlikeById(string id)
         {
-            var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
+            var postCollection = MongoWrapper.Database.GetCollection<Models.Post>(nameof(Models.Post));
 
-            var postFilterBuilder = new FilterDefinitionBuilder<Post>();
+            var postFilterBuilder = new FilterDefinitionBuilder<Models.Post>();
             var postFilter = postFilterBuilder.And
             (
                 postFilterBuilder.Eq(u => u._id, new ObjectId(id)),
@@ -80,7 +80,7 @@ namespace RestServer.Controllers
 
             ObjectId currentUserId = new ObjectId(this.GetCurrentUserId());
 
-            var postUpdateBuilder = new UpdateDefinitionBuilder<Post>();
+            var postUpdateBuilder = new UpdateDefinitionBuilder<Models.Post>();
             var postUpdate = postUpdateBuilder.Pull(p => p.Likes, currentUserId);
 
             var updateResult = await postCollection.UpdateOneAsync(

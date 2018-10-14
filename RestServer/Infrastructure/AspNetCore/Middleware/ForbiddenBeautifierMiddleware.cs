@@ -2,7 +2,8 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Util.Extensions;
+using RestServer.Infrastructure.AspNetCore.Result;
+using RestServer.Util.Extensions;
 
 namespace RestServer.Infrastructure.AspNetCore.Middleware
 {

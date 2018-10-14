@@ -20,6 +20,8 @@ using MongoDB.Driver;
 using MongoDB.Bson;
 using MongoDB.Driver.GridFS;
 using LiterCast.AudioSources;
+using System.Collections.Generic;
+using Models;
 
 namespace RestServer
 {
@@ -136,8 +138,10 @@ namespace RestServer
         {
             var userCollection = mongoWrapper.Database.GetCollection<Models.Musician>(nameof(Models.User));
 
-            var songSortBuilder = new SortDefinitionBuilder<Models.Song>();
-            var songSort = songSortBuilder.Ascending(s => s.TimesPlayedRadio).Descending(s => s.TimesPlayed);
+            var songSortBuilder = new SortDefinitionBuilder<ProjectedMusicianSong>();
+            var songSort = songSortBuilder
+                .Ascending(s => s.Song.TimesPlayedRadio)
+                .Descending(s => s.Song.TimesPlayed);
 
             var userFilterBuilder = new FilterDefinitionBuilder<Models.Musician>();
             var userFilter = userFilterBuilder.And
@@ -146,12 +150,12 @@ namespace RestServer
                 userFilterBuilder.AnyEq("_t", nameof(Models.Musician))
             );
 
-            var songFilterBuilder = new FilterDefinitionBuilder<Models.Song>();
+            var songFilterBuilder = new FilterDefinitionBuilder<ProjectedMusicianSong>();
             var songFilter = songFilterBuilder.And
             (
-                GeneralUtils.NotDeactivated(songFilterBuilder),
-                songFilterBuilder.Eq(s => s.RadioAuthorized, true),
-                songFilterBuilder.Eq(s => s.Original, true)
+                GeneralUtils.NotDeactivated(songFilterBuilder, s => s.Song),
+                songFilterBuilder.Eq(s => s.Song.RadioAuthorized, true),
+                songFilterBuilder.Eq(s => s.Song.Original, true)
             );
 
             var projectionBuilder = new ProjectionDefinitionBuilder<Models.Musician>();
@@ -165,13 +169,41 @@ namespace RestServer
                     PreserveNullAndEmptyArrays = false,
                     IncludeArrayIndex = null,
                 })
-                // Cast because is unwinded, single object now
-                .ReplaceRoot(m => (Models.Song) m.Songs)
+                .Project(m => new ProjectedMusicianSong
+                {
+                    _id = m._id,
+                    Song = (Song) m.Songs,
+                })
                 .Match(songFilter)
                 .Sort(songSort)
                 .Limit(1);
 
             var fsBucket = new GridFSBucket<ObjectId>(mongoWrapper.Database);
+
+            var trackMap = new Dictionary<IAudioSource, (ObjectId, ObjectId)>();
+
+            radioCastServer.OnTrackChanged += (s, e) =>
+            {
+                if(e.OldTrack == null)
+                {
+                    return;
+                }
+                var oldTrackids = trackMap[e.OldTrack];
+                var oldMusicianId = oldTrackids.Item1;
+                var oldTrackId = oldTrackids.Item2;
+
+                var musSongFilterBuilder = new FilterDefinitionBuilder<Models.Musician>();
+
+                var musSongFilter = musSongFilterBuilder.And
+                (
+                    musSongFilterBuilder.ElemMatch(m => m.Songs, sg => sg._id == oldTrackId),
+                    musSongFilterBuilder.Eq(m => m._id, oldMusicianId)
+                );
+                var musSongUpdate = new UpdateDefinitionBuilder<Models.Musician>()
+                    .Inc($"{nameof(Models.Musician.Songs)}.$.{nameof(Song.TimesPlayedRadio)}", 1);
+
+                // TODO: Update played on radio count: +1
+            };
 
             return Task.Run(async () =>
             {
@@ -184,15 +216,15 @@ namespace RestServer
                     });
 
                     var findResult = await findTask;
-                    var firstSong = await findResult.SingleOrDefaultAsync();
+                    var firstSong = findResult.SingleOrDefault();
                     // If no songs, wait a minute before checking again
                     // Mostly not to strain the CPU on development environments
-                    if(firstSong == null)
+                    if(firstSong?.Song == null)
                     {
                         Thread.Sleep(TimeSpan.FromMinutes(1));
                         continue;
                     }
-                    var audioRef = firstSong.AudioReference;
+                    var audioRef = firstSong.Song.AudioReference;
                     var gridId = audioRef._id;
                     var fileStreamTask = fsBucket.OpenDownloadStreamAsync(gridId, new GridFSDownloadOptions
                     {
@@ -201,10 +233,9 @@ namespace RestServer
                     });
                     // Wait for the radio to need more songs before we add the track
                     SpinWait.SpinUntil(() => radioCastServer.TrackCount <= 1);
-                    var audioSource = new FileAudioSource(await fileStreamTask, firstSong.Name);
+                    var audioSource = new FileAudioSource(await fileStreamTask, firstSong.Song.Name);
+                    trackMap[audioSource] = (firstSong._id, firstSong.Song._id);
                     radioCastServer.AddTrack(audioSource);
-                    // TODO: Increment played count by 1 here and persist to MongoDB, or (better): 
-                    // expose events on RadioCastServer and callback here
                 }
             });
         }
@@ -314,6 +345,17 @@ namespace RestServer
                 })
                 .UseStartup<RestServerStartup>()
                 .Build();
+        }
+
+        private class ProjectedMusicianSong
+        {
+            public Song Song { get; set; }
+            public ObjectId _id { get; set; }
+
+            public ProjectedMusicianSong()
+            {
+                
+            }
         }
     }
 }

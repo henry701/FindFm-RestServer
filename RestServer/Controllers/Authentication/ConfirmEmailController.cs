@@ -9,7 +9,7 @@ using MongoDB.Driver;
 using RestServer.Model.Http.Response;
 using RestServer.Util;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.Authentication
 {
     internal sealed class ConfirmEmailController : ControllerBase
     {
@@ -28,7 +28,7 @@ namespace RestServer.Controllers
         public async Task<dynamic> Get(string token)
         {
             var tokenCollection = MongoWrapper.Database.GetCollection<ReferenceToken>(nameof(ReferenceToken));
-            var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(Models.User));
+            var userCollection = MongoWrapper.Database.GetCollection<Models.User>(nameof(Models.User));
 
             var currentTime = DateTime.UtcNow;
 
@@ -60,14 +60,14 @@ namespace RestServer.Controllers
                 };
             }
 
-            var userFilterBuilder = new FilterDefinitionBuilder<User>();
+            var userFilterBuilder = new FilterDefinitionBuilder<Models.User>();
             var userFilter = userFilterBuilder.And
             (
                 userFilterBuilder.Eq(user => user._id, oldConfirmation.UserId),
                 GeneralUtils.NotDeactivated(userFilterBuilder)
             );
 
-            var userUpdateBuilder = new UpdateDefinitionBuilder<User>();
+            var userUpdateBuilder = new UpdateDefinitionBuilder<Models.User>();
             var userUpdate = userUpdateBuilder.Set(user => user.EmailConfirmed, true);
 
             await userCollection.UpdateOneAsync(userFilter, userUpdate);

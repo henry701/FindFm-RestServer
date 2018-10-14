@@ -16,7 +16,7 @@ using RestServer.Util;
 using RestServer.Util.Extensions;
 using MongoDB.Driver;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.Advertisement
 {
     [Route("/ad/create")]
     [Controller]
@@ -37,23 +37,23 @@ namespace RestServer.Controllers
         {
             var userId = new ObjectId(this.GetCurrentUserId());
 
-            var userCollection = MongoWrapper.Database.GetCollection<Contractor>(nameof(User));
+            var userCollection = MongoWrapper.Database.GetCollection<Models.Contractor>(nameof(Models.User));
 
-            var userFilterBuilder = new FilterDefinitionBuilder<Contractor>();
+            var userFilterBuilder = new FilterDefinitionBuilder<Models.Contractor>();
             var userFilter = userFilterBuilder.And
             (
                 GeneralUtils.NotDeactivated(userFilterBuilder),
                 userFilterBuilder.Eq(user => user._id, userId)
             );
 
-            var userProjectionBuilder = new ProjectionDefinitionBuilder<Contractor>();
+            var userProjectionBuilder = new ProjectionDefinitionBuilder<Models.Contractor>();
             var userProjection = userProjectionBuilder
                 .Include(m => m._id)
                 .Include(m => m.FullName)
                 .Include(m => m.Avatar)
                 .Include("_t");
 
-            var userTask = userCollection.FindAsync(userFilter, new FindOptions<Contractor>
+            var userTask = userCollection.FindAsync(userFilter, new FindOptions<Models.Contractor>
             {
                 Limit = 1,
                 AllowPartialResults = false,
@@ -71,11 +71,11 @@ namespace RestServer.Controllers
                 );
             }
 
-            var postCollection = MongoWrapper.Database.GetCollection<Advertisement>(nameof(Advertisement));
+            var postCollection = MongoWrapper.Database.GetCollection<Models.Advertisement>(nameof(Models.Advertisement));
 
             var creationDate = DateTime.UtcNow;
 
-            var ad = new Advertisement
+            var ad = new Models.Advertisement
             {
                 _id = ObjectId.GenerateNewId(creationDate),
                 Title = requestBody.Titulo,

@@ -9,7 +9,7 @@ using RestServer.Model.Http.Response;
 using RestServer.Util;
 using RestServer.Util.Extensions;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.Post.Comment
 {
     [Route("/comment/like")]
     [Controller]
@@ -28,12 +28,12 @@ namespace RestServer.Controllers
         [HttpGet("{postId}/{commentId}")]
         public async Task<dynamic> LikeById(string postId, string commentId)
         {
-            var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
+            var postCollection = MongoWrapper.Database.GetCollection<Models.Post>(nameof(Models.Post));
 
-            var commentFilterBuilder = new FilterDefinitionBuilder<Comment>();
+            var commentFilterBuilder = new FilterDefinitionBuilder<Models.Comment>();
             var commentFilter = commentFilterBuilder.Eq(c => c._id, new ObjectId(commentId));
 
-            var postFilterBuilder = new FilterDefinitionBuilder<Post>();
+            var postFilterBuilder = new FilterDefinitionBuilder<Models.Post>();
             var postFilter = postFilterBuilder.And
             (
                 postFilterBuilder.Eq(u => u._id, new ObjectId(postId)),
@@ -44,7 +44,7 @@ namespace RestServer.Controllers
 
             ObjectId currentUserId = new ObjectId(this.GetCurrentUserId());
 
-            var commentUpdateBuilder = new UpdateDefinitionBuilder<Post>();
+            var commentUpdateBuilder = new UpdateDefinitionBuilder<Models.Post>();
             var commentUpdate = commentUpdateBuilder.AddToSet(p => p.Comments[-1].Likes, currentUserId);
 
             var updateResult = await postCollection.UpdateOneAsync(
@@ -74,13 +74,13 @@ namespace RestServer.Controllers
         [HttpDelete("{postId}/{commentId}")]
         public async Task<dynamic> UnlikeById(string postId, string commentId)
         {
-            var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
+            var postCollection = MongoWrapper.Database.GetCollection<Models.Post>(nameof(Models.Post));
 
 
-            var commentFilterBuilder = new FilterDefinitionBuilder<Comment>();
+            var commentFilterBuilder = new FilterDefinitionBuilder<Models.Comment>();
             var commentFilter = commentFilterBuilder.Eq(c => c._id, new ObjectId(commentId));
 
-            var postFilterBuilder = new FilterDefinitionBuilder<Post>();
+            var postFilterBuilder = new FilterDefinitionBuilder<Models.Post>();
             var postFilter = postFilterBuilder.And
             (
                 postFilterBuilder.Eq(u => u._id, new ObjectId(postId)),
@@ -91,7 +91,7 @@ namespace RestServer.Controllers
 
             ObjectId currentUserId = new ObjectId(this.GetCurrentUserId());
 
-            var commentUpdateBuilder = new UpdateDefinitionBuilder<Post>();
+            var commentUpdateBuilder = new UpdateDefinitionBuilder<Models.Post>();
             var commentUpdate = commentUpdateBuilder.Pull(p => p.Comments[-1].Likes, currentUserId);
 
             var updateResult = await postCollection.UpdateOneAsync(

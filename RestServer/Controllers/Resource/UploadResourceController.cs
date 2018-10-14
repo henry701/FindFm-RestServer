@@ -17,7 +17,7 @@ using RestServer.Model.Http.Response;
 using RestServer.Util;
 using RestServer.Util.Extensions;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.Resource
 {
     [Route("/upload")]
     [Controller]

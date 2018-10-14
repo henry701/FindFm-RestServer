@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
-namespace RestServer.Http.Request
+namespace RestServer.Model.Http.Request
 {
     /// <summary>
     /// Request model for REST Login Request

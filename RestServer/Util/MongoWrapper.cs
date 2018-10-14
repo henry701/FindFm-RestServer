@@ -49,12 +49,12 @@ namespace RestServer.Util
 
         private void CreateIndexes()
         {
-            var postCollection = Database.GetCollection<Post>(nameof(Post));
+            var postCollection = Database.GetCollection<Models.Post>(nameof(Post));
             postCollection.Indexes.CreateOne
             (
-                new CreateIndexModel<Post>
+                new CreateIndexModel<Models.Post>
                 (
-                    new IndexKeysDefinitionBuilder<Post>()
+                    new IndexKeysDefinitionBuilder<Models.Post>()
                     .Text(p => p.Text)
                     .Text(p => p.Title)
                     .Text(p => p.Poster.FullName),

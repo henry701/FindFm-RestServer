@@ -8,7 +8,7 @@ using Models;
 using RestServer.Model.Http.Response;
 using RestServer.Util.Extensions;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.Other
 {
     [Route("/instruments")]
     [Controller]

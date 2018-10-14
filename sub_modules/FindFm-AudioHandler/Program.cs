@@ -9,7 +9,7 @@ using System.ComponentModel.DataAnnotations;
 using MimeDetective.Extensions;
 using System.Threading;
 
-namespace AudioHandler
+namespace FindFm_AudioHandler
 {
     public class Program
     {
@@ -53,7 +53,7 @@ namespace AudioHandler
 
                 sysin.Position = 0;
                 WaveStream readerStream = ReaderForAudioFormat(sysin, audioFormat);
-                Console.Error.WriteLine($"ReaderStream is {readerStream} with length {readerStream.Length} and position {readerStream.Position}");
+                Console.Error.WriteLine($"ReaderStream is {readerStream}");
 
                 Stream sysout = Console.OpenStandardOutput();
 
@@ -127,7 +127,7 @@ namespace AudioHandler
                     var tempPath = Path.GetTempFileName();
                     AppDomain.CurrentDomain.ProcessExit += (o, e) =>
                     {
-                        //File.Delete(tempPath);
+                        File.Delete(tempPath);
                     };
                     var tempFileStream = File.OpenWrite(tempPath);
                     fileInputStream.CopyTo(tempFileStream);
@@ -147,27 +147,15 @@ namespace AudioHandler
             WaveFormat waveFormat = readerStream.WaveFormat;
             if (waveFormat.Encoding != WaveFormatEncoding.Pcm)
             {
-                waveFormat = WaveFormat.CreateCustomFormat
-                (
-                    WaveFormatEncoding.Pcm,
-                    waveFormat.SampleRate,
-                    waveFormat.Channels,
-                    waveFormat.AverageBytesPerSecond,
-                    waveFormat.BlockAlign,
-                    waveFormat.BitsPerSample
-                );
-                readerStream = new WaveFormatConversionStream(waveFormat, readerStream);
-                readerStream = new BlockAlignReductionStream(readerStream);
+                ConvertToPcm(ref readerStream, ref waveFormat);
             }
             if (waveFormat.BitsPerSample != 16)
             {
-                waveFormat = WaveFormat.CreateCustomFormat
+                waveFormat = CreateSaneWaveFormat
                 (
                     waveFormat.Encoding,
                     waveFormat.SampleRate,
                     waveFormat.Channels,
-                    (16 * waveFormat.SampleRate * waveFormat.Channels) / 8,
-                    (waveFormat.Channels * 16) / 8,
                     16
                 );
                 readerStream = new WaveProviderToWaveStream
@@ -175,11 +163,73 @@ namespace AudioHandler
                     new MediaFoundationResampler(readerStream, waveFormat)
                 );
             }
-            if(!(readerStream is BlockAlignReductionStream))
+            if(waveFormat.SampleRate != 44_100)
+            {
+                waveFormat = CreateSaneWaveFormat
+                (
+                    waveFormat.Encoding,
+                    44_100,
+                    waveFormat.Channels,
+                    waveFormat.BitsPerSample
+                );
+                readerStream = new WaveProviderToWaveStream
+                (
+                    new MediaFoundationResampler(readerStream, waveFormat)
+                );
+            }
+            if (waveFormat.Channels != 2)
+            {
+                waveFormat = CreateSaneWaveFormat
+                (
+                    waveFormat.Encoding,
+                    waveFormat.SampleRate,
+                    2,
+                    waveFormat.BitsPerSample
+                );
+                readerStream = new WaveProviderToWaveStream
+                (
+                    new MediaFoundationResampler(readerStream, waveFormat)
+                );
+            }
+            if (!(readerStream is BlockAlignReductionStream))
             {
                 readerStream = new BlockAlignReductionStream(readerStream);
             }
             return readerStream;
+        }
+
+        private static void ConvertToPcm(ref WaveStream readerStream, ref WaveFormat waveFormat)
+        {
+            waveFormat = WaveFormat.CreateCustomFormat
+            (
+                WaveFormatEncoding.Pcm,
+                waveFormat.SampleRate,
+                waveFormat.Channels,
+                waveFormat.AverageBytesPerSecond,
+                waveFormat.BlockAlign,
+                waveFormat.BitsPerSample
+            );
+            readerStream = new WaveFormatConversionStream(waveFormat, readerStream);
+            readerStream = new BlockAlignReductionStream(readerStream);
+        }
+
+        internal static WaveFormat CreateSaneWaveFormat
+        (
+            WaveFormatEncoding encoding,
+            int sampleRate,
+            int channels, 
+            int bitsPerSample
+        )
+        {
+            return WaveFormat.CreateCustomFormat
+            (
+                encoding,
+                sampleRate,
+                channels,
+                (bitsPerSample * sampleRate * channels) / 8,
+                (channels * bitsPerSample) / 8,
+                bitsPerSample
+            );
         }
     }
 

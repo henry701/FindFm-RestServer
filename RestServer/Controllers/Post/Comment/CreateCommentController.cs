@@ -12,7 +12,7 @@ using RestServer.Model.Http.Response;
 using RestServer.Util;
 using RestServer.Util.Extensions;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.Post.Comment
 {
     [Route("/post/comment")]
     [Controller]
@@ -31,9 +31,9 @@ namespace RestServer.Controllers
         [HttpPost("{id}")]
         public async Task<dynamic> CommentById(string id, [FromBody] CreateCommentRequest requestBody)
         {
-            var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
+            var postCollection = MongoWrapper.Database.GetCollection<Models.Post>(nameof(Models.Post));
 
-            var postFilterBuilder = new FilterDefinitionBuilder<Post>();
+            var postFilterBuilder = new FilterDefinitionBuilder<Models.Post>();
             var postFilter = postFilterBuilder.And
             (
                 postFilterBuilder.Eq(u => u._id, new ObjectId(id)),
@@ -42,29 +42,29 @@ namespace RestServer.Controllers
 
             var userId = new ObjectId(this.GetCurrentUserId());
 
-            var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(User));
+            var userCollection = MongoWrapper.Database.GetCollection<Models.User>(nameof(Models.User));
 
-            var userFilterBuilder = new FilterDefinitionBuilder<User>();
+            var userFilterBuilder = new FilterDefinitionBuilder<Models.User>();
             var userFilter = userFilterBuilder.And(
                 GeneralUtils.NotDeactivated(userFilterBuilder),
                 userFilterBuilder.Eq(user => user._id, userId)
             );
 
-            var userProjectionBuilder = new ProjectionDefinitionBuilder<User>();
+            var userProjectionBuilder = new ProjectionDefinitionBuilder<Models.User>();
             var userProjection = userProjectionBuilder
                 .Include(m => m._id)
                 .Include(m => m.FullName)
                 .Include(m => m.Avatar)
                 .Include("_t");
 
-            var userTask = userCollection.FindAsync(userFilter, new FindOptions<User>
+            var userTask = userCollection.FindAsync(userFilter, new FindOptions<Models.User>
             {
                 Limit = 1,
                 AllowPartialResults = false,
                 Projection = userProjection
             });
 
-            Comment newComment = new Comment
+            Models.Comment newComment = new Models.Comment
             {
                 _id = ObjectId.GenerateNewId(),
                 Commenter = (await userTask).Single(),
@@ -72,7 +72,7 @@ namespace RestServer.Controllers
                 Text = requestBody.Comentario,
             };
 
-            var postUpdateBuilder = new UpdateDefinitionBuilder<Post>();
+            var postUpdateBuilder = new UpdateDefinitionBuilder<Models.Post>();
             var postUpdate = postUpdateBuilder.Push(p => p.Comments, newComment);
 
             var updateResult = await postCollection.UpdateOneAsync(

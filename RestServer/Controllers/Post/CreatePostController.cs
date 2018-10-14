@@ -16,7 +16,7 @@ using RestServer.Util;
 using RestServer.Util.Extensions;
 using MongoDB.Driver;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.Post
 {
     [Route("/post/create")]
     [Controller]
@@ -37,22 +37,22 @@ namespace RestServer.Controllers
         {
             var userId = new ObjectId(this.GetCurrentUserId());
 
-            var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(User));
+            var userCollection = MongoWrapper.Database.GetCollection<Models.User>(nameof(Models.User));
 
-            var userFilterBuilder = new FilterDefinitionBuilder<User>();
+            var userFilterBuilder = new FilterDefinitionBuilder<Models.User>();
             var userFilter = userFilterBuilder.And(
                 GeneralUtils.NotDeactivated(userFilterBuilder),
                 userFilterBuilder.Eq(user => user._id, userId)
             );
 
-            var userProjectionBuilder = new ProjectionDefinitionBuilder<User>();
+            var userProjectionBuilder = new ProjectionDefinitionBuilder<Models.User>();
             var userProjection = userProjectionBuilder
                 .Include(m => m._id)
                 .Include(m => m.FullName)
                 .Include(m => m.Avatar)
                 .Include("_t");
 
-            var userTask = userCollection.FindAsync(userFilter, new FindOptions<User>
+            var userTask = userCollection.FindAsync(userFilter, new FindOptions<Models.User>
             {
                 Limit = 1,
                 AllowPartialResults = false,
@@ -89,16 +89,16 @@ namespace RestServer.Controllers
                 );
             }
 
-            var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
+            var postCollection = MongoWrapper.Database.GetCollection<Models.Post>(nameof(Models.Post));
 
             var creationDate = DateTime.UtcNow;
 
-            var post = new Post
+            var post = new Models.Post
             {
                 _id = ObjectId.GenerateNewId(creationDate),
                 Title = requestBody.Titulo,
                 Text = requestBody.Descricao,
-                Comments = new List<Comment>(),
+                Comments = new List<Models.Comment>(),
                 Likes = new HashSet<ObjectId>(),
                 FileReferences = new FileReference[]
                 {

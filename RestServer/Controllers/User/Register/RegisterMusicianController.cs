@@ -14,7 +14,7 @@ using RestServer.Model.Http.Request;
 using RestServer.Util;
 using RestServer.Util.Extensions;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.User.Register
 {
     [Route("/register/musician")]
     [Controller]
@@ -25,7 +25,7 @@ namespace RestServer.Controllers
 
         }
 
-        protected override async Task<User> BindUser(RegisterMusicianRequest requestBody, DateTime creationDate)
+        protected override async Task<Models.User> BindUser(RegisterMusicianRequest requestBody, DateTime creationDate)
         {
             return await Task.Run(() => new Musician()
             {
@@ -46,8 +46,8 @@ namespace RestServer.Controllers
                 PremiumLevel = PremiumLevel.None,
                 Avatar = null,
                 InstrumentSkills = requestBody.Instrumentos?.DefaultIfEmpty().Where(instr => instr != null).ToDictionary(instr => EnumExtensions.FromDisplayName<Skill>(instr.Nome), el => (SkillLevel)el.NivelHabilidade).ToHashSet(),
-                Works = new HashSet<Work>(),
-                Songs = new HashSet<Song>(),
+                Works = new HashSet<Models.Work>(),
+                Songs = new HashSet<Models.Song>(),
                 About = requestBody.Sobre,
             });
         }

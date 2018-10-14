@@ -14,7 +14,7 @@ using RestServer.Model.Http.Request;
 using RestServer.Util;
 using RestServer.Util.Extensions;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.User.Edit
 {
     [Controller]
     [Route("/editSelf/musician")]
@@ -25,7 +25,7 @@ namespace RestServer.Controllers
 
         }
 
-        protected override async Task<Musician> BindUser(EditMusicianRequest requestBody, DateTime creationDate)
+        protected override async Task<Models.Musician> BindUser(EditMusicianRequest requestBody, DateTime creationDate)
         {
             return await Task.Run(() => new Musician()
             {
@@ -44,15 +44,15 @@ namespace RestServer.Controllers
                 PremiumLevel = PremiumLevel.None,
                 Avatar = null,
                 InstrumentSkills = requestBody.Instrumentos?.DefaultIfEmpty().Where(instr => instr != null).ToDictionary(instr => EnumExtensions.FromDisplayName<Skill>(instr.Nome), el => (SkillLevel)el.NivelHabilidade).ToHashSet(),
-                Works = new HashSet<Work>(),
-                Songs = new HashSet<Song>(),
+                Works = new HashSet<Models.Work>(),
+                Songs = new HashSet<Models.Song>(),
                 About = requestBody.Sobre,
             });
         }
 
-        protected override Task<UpdateDefinition<Musician>> CreateUpdateDefinition(Musician oldUser, Musician newUser)
+        protected override Task<UpdateDefinition<Models.Musician>> CreateUpdateDefinition(Musician oldUser, Musician newUser)
         {
-            var userUpdateBuilder = new UpdateDefinitionBuilder<Musician>();
+            var userUpdateBuilder = new UpdateDefinitionBuilder<Models.Musician>();
             var userUpdate = userUpdateBuilder
                 .Set(u => u.Address, newUser.Address)
                 .Set(u => u.Avatar, newUser.Avatar)

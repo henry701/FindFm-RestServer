@@ -17,9 +17,9 @@ using RestServer.Model.Http.Request;
 using System;
 using MongoDB.Driver.GridFS;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.User.Edit
 {
-    internal abstract class EditUserControllerBase<TBody, TEntity> : ControllerBase where TBody : IBasicRegisterBody where TEntity : User
+    internal abstract class EditUserControllerBase<TBody, TEntity> : ControllerBase where TBody : IBasicRegisterBody where TEntity : Models.User
     {
         private readonly ILogger<EditUserControllerBase<TBody, TEntity>> Logger;
         private readonly MongoWrapper MongoWrapper;
@@ -40,7 +40,7 @@ namespace RestServer.Controllers
 
             var newUserTask = BindUser(requestBody, creationDate);
 
-            var userCollection = MongoWrapper.Database.GetCollection<TEntity>(nameof(User));
+            var userCollection = MongoWrapper.Database.GetCollection<TEntity>(nameof(Models.User));
 
             var userFilterBuilder = new FilterDefinitionBuilder<TEntity>();
             var userFilter = userFilterBuilder.And
@@ -77,27 +77,27 @@ namespace RestServer.Controllers
 
             var userUpdateTask = userCollection.UpdateOneAsync(userFilter, userUpdate);
 
-            var postCollection = MongoWrapper.Database.GetCollection<Post>(nameof(Post));
+            var postCollection = MongoWrapper.Database.GetCollection<Models.Post>(nameof(Models.Post));
 
-            var postFilterBuilder = new FilterDefinitionBuilder<Post>();
+            var postFilterBuilder = new FilterDefinitionBuilder<Models.Post>();
             var postFilter = postFilterBuilder.And
             (
                 postFilterBuilder.Eq(p => p.Poster._id, oldUser._id),
                 GeneralUtils.NotDeactivated(postFilterBuilder)
             );
-            var postUpdateBuilder = new UpdateDefinitionBuilder<Post>();
+            var postUpdateBuilder = new UpdateDefinitionBuilder<Models.Post>();
             var postUpdate = postUpdateBuilder.Set(p => p.Poster.Avatar, newUser.Avatar)
                                               .Set(p => p.Poster.FullName, newUser.FullName);
 
             var commentFilterBuilder = new FilterDefinitionBuilder<Comment>();
             var commentFilter = commentFilterBuilder.Eq(c => c._id, oldUser._id);
-            var postCommentFilterBuilder = new FilterDefinitionBuilder<Post>();
+            var postCommentFilterBuilder = new FilterDefinitionBuilder<Models.Post>();
             var postCommentFilter = postFilterBuilder.And
             (
                 GeneralUtils.NotDeactivated(postFilterBuilder),
                 postCommentFilterBuilder.ElemMatch(p => p.Comments, commentFilter)
             );
-            var postCommentUpdateBuilder = new UpdateDefinitionBuilder<Post>();
+            var postCommentUpdateBuilder = new UpdateDefinitionBuilder<Models.Post>();
             var postCommentUpdate = postUpdateBuilder
                                              .Set(p => p.Comments[-1].Commenter.Avatar, newUser.Avatar)
                                              .Set(p => p.Comments[-1].Commenter.FullName, newUser.FullName);

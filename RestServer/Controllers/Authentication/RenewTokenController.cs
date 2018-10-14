@@ -7,7 +7,7 @@ using RestServer.Model.Http.Response;
 using System.Net;
 using RestServer.Util.Extensions;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.Authentication
 {
     internal sealed class RenewTokenController : ControllerBase
     {

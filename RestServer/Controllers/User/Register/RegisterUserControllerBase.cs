@@ -14,7 +14,7 @@ using RestServer.Model.Http.Response;
 using RestServer.Util;
 using RestServer.Util.Extensions;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.User.Register
 {
     internal abstract class RegisterUserControllerBase<TBody> : ControllerBase where TBody : IBasicRegisterBody
     {
@@ -40,7 +40,7 @@ namespace RestServer.Controllers
         {
             this.EnsureModelValidation();
 
-            var userCollection = MongoWrapper.Database.GetCollection<User>(nameof(User));
+            var userCollection = MongoWrapper.Database.GetCollection<Models.User>(nameof(Models.User));
 
             await RegistrarUtils.TestUserExists(this, userCollection, requestBody.Email);
             ResponseBody responseBody = new ResponseBody();
@@ -99,6 +99,6 @@ namespace RestServer.Controllers
             return responseBody;
         }
 
-        protected abstract Task<User> BindUser(TBody requestBody, DateTime creationDate);
+        protected abstract Task<Models.User> BindUser(TBody requestBody, DateTime creationDate);
     }
 }

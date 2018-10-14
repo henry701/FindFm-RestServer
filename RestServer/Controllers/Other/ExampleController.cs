@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using RestServer.Model.Config;
 using RestServer.Util;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.Other
 {
     [Route("/example")]
     [Controller]

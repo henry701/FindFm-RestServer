@@ -11,10 +11,11 @@ using Models;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver.GridFS;
+using RestServer.Controllers.User.Register;
 using RestServer.Model.Http.Response;
 using RestServer.Util;
 
-namespace RestServer.Controllers
+namespace RestServer.Controllers.Resource
 {
     internal sealed class RetrieveResourceController : ControllerBase
     {

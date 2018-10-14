@@ -63,9 +63,12 @@ namespace RestServer.Util
             {
                 dateTime = DateTime.UtcNow;
             }
-            return builder.Or(
-                builder.Not(
-                    builder.Exists(
+            return builder.Or
+            (
+                builder.Not
+                (
+                    builder.Exists
+                    (
                         Expression.Lambda<Func<TDocument, object>>
                         (
                             Expression.Convert
@@ -83,24 +86,20 @@ namespace RestServer.Util
                 ),
                 builder.Gt
                 (
-                    Expression.Lambda<Func<TDocument, ulong>>
+                    Expression.Lambda<Func<TDocument, DateTime>>
                     (
                         Expression.Convert
                         (
                             Expression.Property
                             (
-                                Expression.Property
-                                (
-                                    acessor.Body,
-                                    nameof(IActivationAware.DeactivationDate)
-                                ),
-                                nameof(DateTime.Ticks)
+                                acessor.Body,
+                                nameof(IActivationAware.DeactivationDate)
                             ),
-                            typeof(ulong)
+                            typeof(DateTime)
                         ),
                         acessor.Parameters
                     ),
-                    (ulong) (dateTime.Value.Ticks)
+                    dateTime.Value
                 )
             );
         }
