@@ -7,9 +7,8 @@ using System.Linq;
 using System.IO;
 using System.ComponentModel.DataAnnotations;
 using MimeDetective.Extensions;
-using System.Threading;
 
-namespace FindFm_AudioHandler
+namespace FindFm.AudioHandler
 {
     public class Program
     {
@@ -25,34 +24,18 @@ namespace FindFm_AudioHandler
                 string id3Title = Environment.GetEnvironmentVariable("FFM_ID3_TITLE");
                 string id3Author = Environment.GetEnvironmentVariable("FFM_ID3_AUTHOR");
                 string mimeHint = Environment.GetEnvironmentVariable("FFM_MIME");
+                int? limitSeconds = Environment.GetEnvironmentVariable("FFM_MAX_SECONDS") == null ?
+                    new int?() :
+                    Convert.ToInt32(Environment.GetEnvironmentVariable("FFM_MAX_SECONDS"));
 
-                string typeString = HeyRed.Mime.MimeGuesser.GuessExtension(sysin);
-                if(string.Equals(typeString, "bin", StringComparison.OrdinalIgnoreCase))
-                {
-                    MimeDetective.FileType ft = sysin.GetFileType();
-                    if(ft != null)
-                    {
-                        typeString = ft.Extension;
-                    }
-                    else
-                    {
-                        if(!string.IsNullOrWhiteSpace(mimeHint))
-                        {
-                            typeString = HeyRed.Mime.MimeTypesMap.GetExtension(mimeHint);
-                            if(string.Equals(typeString, "bin", StringComparison.OrdinalIgnoreCase))
-                            {
-                                // TODO more guessing
-                            }
-                        }
-                    }
-                }
+                string typeString = InferInformationString(sysin, mimeHint);
                 Console.Error.WriteLine($"TypeString is {typeString}");
 
                 AudioFormat audioFormat = AudioFormatFromString(typeString);
                 Console.Error.WriteLine($"AudioFormat is {audioFormat}");
 
                 sysin.Position = 0;
-                WaveStream readerStream = ReaderForAudioFormat(sysin, audioFormat);
+                WaveStream readerStream = ReaderForAudioFormat(sysin, audioFormat, limitSeconds, out int seconds);
                 Console.Error.WriteLine($"ReaderStream is {readerStream}");
 
                 Stream sysout = Console.OpenStandardOutput();
@@ -69,6 +52,8 @@ namespace FindFm_AudioHandler
                     }
                 );
 
+                Console.Error.WriteLine($"Setting Debug,Error,Message functions on fileWriter");
+
                 fileWriter.SetDebugFunction(txt => Console.Error.WriteLine(txt));
                 fileWriter.SetErrorFunction(txt => Console.Error.WriteLine(txt));
                 fileWriter.SetMessageFunction(txt => Console.Error.WriteLine(txt));
@@ -81,14 +66,41 @@ namespace FindFm_AudioHandler
 
                 sysout.Close();
 
-                return 0;
+                return seconds;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Console.Error.WriteLine(e);
                 Console.Error.Flush();
                 return -1;
             }
+        }
+
+        private static string InferInformationString(Stream sysin, string mimeHint)
+        {
+            string typeString = HeyRed.Mime.MimeGuesser.GuessExtension(sysin);
+
+            if (string.Equals(typeString, "bin", StringComparison.OrdinalIgnoreCase))
+            {
+                MimeDetective.FileType ft = sysin.GetFileType();
+                if (ft != null)
+                {
+                    typeString = ft.Extension;
+                }
+                else
+                {
+                    if (!string.IsNullOrWhiteSpace(mimeHint))
+                    {
+                        typeString = HeyRed.Mime.MimeTypesMap.GetExtension(mimeHint);
+                        if (string.Equals(typeString, "bin", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // TODO more guessing
+                        }
+                    }
+                }
+            }
+
+            return typeString;
         }
 
         private static AudioFormat AudioFormatFromString(string extensionOrMime)
@@ -102,7 +114,13 @@ namespace FindFm_AudioHandler
             return fmt;
         }
 
-        private static WaveStream ReaderForAudioFormat(Stream fileInputStream, AudioFormat audioFormat)
+        private static WaveStream ReaderForAudioFormat
+        (
+            Stream fileInputStream,
+            AudioFormat audioFormat,
+            int? maxSeconds,
+            out int seconds
+        )
         {
             WaveStream readerStream;
             switch (audioFormat)
@@ -137,12 +155,22 @@ namespace FindFm_AudioHandler
                     break;
             }
 
-            readerStream = ConvertToMp3LameConvertible(readerStream);
+            if (maxSeconds.HasValue)
+            {
+                readerStream = new CapSecondsByAverageStream(readerStream, maxSeconds.Value);
+                seconds = maxSeconds.Value;
+            }
+            else
+            {
+                seconds = (int) (readerStream.Length / readerStream.WaveFormat.AverageBytesPerSecond);
+            }
+
+            readerStream = NormalizeWaveFormat(readerStream);
 
             return readerStream;
         }
 
-        private static WaveStream ConvertToMp3LameConvertible(WaveStream readerStream)
+        private static WaveStream NormalizeWaveFormat(WaveStream readerStream)
         {
             WaveFormat waveFormat = readerStream.WaveFormat;
             if (waveFormat.Encoding != WaveFormatEncoding.Pcm)
@@ -231,6 +259,36 @@ namespace FindFm_AudioHandler
                 bitsPerSample
             );
         }
+
+        private class CapSecondsByAverageStream : WaveStream
+        {
+            private WaveStream ReaderStream { get; set; }
+            public int MaxSeconds { get; private set; }
+            private long MaxBytes { get; set; }
+
+            public CapSecondsByAverageStream(WaveStream readerStream, int maxSeconds)
+            {
+                ReaderStream = readerStream;
+                MaxSeconds = maxSeconds;
+                MaxBytes = readerStream.WaveFormat.AverageBytesPerSecond * maxSeconds;
+            }
+
+            public override WaveFormat WaveFormat => ReaderStream.WaveFormat;
+
+            public override long Length => Math.Min(ReaderStream.Length, MaxBytes);
+
+            public override long Position { get => ReaderStream.Position; set => ReaderStream.Position = value; }
+
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                long left = MaxBytes - Position;
+                if(left < count)
+                {
+                    count = (int) left;
+                }
+                return ReaderStream.Read(buffer, offset, count);
+            }
+        }
     }
 
     internal enum AudioFormat
@@ -302,10 +360,12 @@ namespace FindFm_AudioHandler
     {
         private readonly IWaveProvider source;
         private long position;
+        private int? providedLength;
 
-        public WaveProviderToWaveStream(IWaveProvider source)
+        public WaveProviderToWaveStream(IWaveProvider source, int? providedLength = null)
         {
             this.source = source;
+            this.providedLength = providedLength;
         }
 
         public override WaveFormat WaveFormat
@@ -318,7 +378,7 @@ namespace FindFm_AudioHandler
         /// </summary>
         public override long Length
         {
-            get { return Int32.MaxValue; }
+            get { return providedLength ?? int.MaxValue; }
         }
 
         public override long Position

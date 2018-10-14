@@ -82,7 +82,7 @@ namespace RestServer.Controllers.Song
                 RadioAuthorized = requestBody.PermitidoRadio,
                 Original = requestBody.ObraAutoral,
                 AudioReference = audioReference,
-                DurationSeconds = 99, // TODO - Parte mais difícil desse proj é provavelmente a porra do parse de música
+                DurationSeconds = (uint) await audioNormalizeTask,
                 TimesPlayed = 0,
                 TimesPlayedRadio = 0,
             };
@@ -101,7 +101,7 @@ namespace RestServer.Controllers.Song
             };
         }
 
-        private async Task NormalizeAudio(FileReference fileReference, CreateSongRequest requestBody)
+        private async Task<int> NormalizeAudio(FileReference fileReference, CreateSongRequest requestBody)
         {
             var oldId = fileReference._id;
             var newId = ObjectId.GenerateNewId();
@@ -109,7 +109,7 @@ namespace RestServer.Controllers.Song
             var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database);
             var downloadStream = await gridFsBucket.OpenDownloadStreamAsync(oldId);
 
-            Stream newAudio = await AudioHandlerService.ProcessAudio
+            (Stream newAudio, int seconds) = await AudioHandlerService.ProcessAudio
             (
                 downloadStream,
                 requestBody.ObraAutoral ? null : new int?(30),
@@ -141,6 +141,8 @@ namespace RestServer.Controllers.Song
             await uploadStream.CloseAsync();
 
             var deleteOldTask = gridFsBucket.DeleteAsync(oldId);
+
+            return seconds;
         }
     }
 }

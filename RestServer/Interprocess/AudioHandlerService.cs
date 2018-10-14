@@ -12,7 +12,7 @@ namespace RestServer.Interprocess
     {
         private static readonly ILogger LOGGER = LogManager.GetCurrentClassLogger();
 
-        public static async Task<Stream> ProcessAudio(Stream sourceAudio, int? cutSeconds, string title, string author, string mimeHint = null)
+        public static async Task<(Stream, int)> ProcessAudio(Stream sourceAudio, int? cutSeconds, string title, string author, string mimeHint = null)
         {
             var procDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "FindFm-AudioHandler");
 
@@ -29,7 +29,11 @@ namespace RestServer.Interprocess
 
             startInfo.Environment["FFM_ID3_AUTHOR"] = author;
             startInfo.Environment["FFM_ID3_TITLE"] = title;
-            startInfo.Environment["FFM_MIMEHINT"] = mimeHint;
+            if(cutSeconds.HasValue)
+            {
+                startInfo.Environment["FFM_MAX_SECONDS"] = Convert.ToString(cutSeconds.Value);
+            }
+            startInfo.Environment["FFM_MIME"] = mimeHint;
 
             using (var process = Process.Start(startInfo))
             {
@@ -52,16 +56,16 @@ namespace RestServer.Interprocess
                     throw new ApplicationException("Erro ao normalizar áudio!");
                 }
 
-                if (process.ExitCode != 0)
+                if (process.ExitCode < 0)
                 {
-                    LOGGER.Error("Interprocess exit code expected 0, but was: {}. Process error stream: {}", process.ExitCode, await process.StandardError.ReadToEndAsync());
+                    LOGGER.Error("Interprocess exit code expected >=0 (seconds), but was: {}. Process error stream: {}", process.ExitCode, await process.StandardError.ReadToEndAsync());
                     throw new ApplicationException("Erro ao normalizar áudio!");
                 }
 
                 LOGGER.Debug("Interprocess error stream: {}", await process.StandardError.ReadToEndAsync());
 
                 outStream.Position = 0;
-                return outStream;
+                return (outStream, process.ExitCode);
             }
         }
     }

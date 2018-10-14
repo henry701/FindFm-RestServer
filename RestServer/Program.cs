@@ -182,9 +182,13 @@ namespace RestServer
 
             var trackMap = new Dictionary<IAudioSource, (ObjectId, ObjectId)>();
 
-            radioCastServer.OnTrackChanged += (s, e) =>
+            var onTrackChangedTE = new ManualResetEvent(true);
+
+            radioCastServer.OnTrackChanged += async (s, e) =>
             {
-                if(e.OldTrack == null)
+                onTrackChangedTE.Set();
+
+                if (e.OldTrack == null)
                 {
                     return;
                 }
@@ -196,13 +200,15 @@ namespace RestServer
 
                 var musSongFilter = musSongFilterBuilder.And
                 (
-                    musSongFilterBuilder.ElemMatch(m => m.Songs, sg => sg._id == oldTrackId),
-                    musSongFilterBuilder.Eq(m => m._id, oldMusicianId)
+                    musSongFilterBuilder.Eq(m => m._id, oldMusicianId),
+                    musSongFilterBuilder.ElemMatch(m => m.Songs, sg => sg._id == oldTrackId)
                 );
                 var musSongUpdate = new UpdateDefinitionBuilder<Models.Musician>()
                     .Inc($"{nameof(Models.Musician.Songs)}.$.{nameof(Song.TimesPlayedRadio)}", 1);
 
-                // TODO: Update played on radio count: +1
+                await userCollection.UpdateOneAsync(musSongFilter, musSongUpdate);
+
+                trackMap.Remove(e.OldTrack);
             };
 
             return Task.Run(async () =>
@@ -231,9 +237,13 @@ namespace RestServer
                         Seekable = true,
                         CheckMD5 = false,
                     });
-                    // Wait for the radio to need more songs before we add the track
-                    SpinWait.SpinUntil(() => radioCastServer.TrackCount <= 1);
-                    var audioSource = new FileAudioSource(await fileStreamTask, firstSong.Song.Name);
+                    var audioSource = new Mp3FileAudioSource(await fileStreamTask, firstSong.Song.Name);
+                    // Wait for the radio to need more songs before we add the track we have on our hands
+                    while (radioCastServer.TrackCount > 1)
+                    {
+                        onTrackChangedTE.WaitOne();
+                        onTrackChangedTE.Reset();
+                    }
                     trackMap[audioSource] = (firstSong._id, firstSong.Song._id);
                     radioCastServer.AddTrack(audioSource);
                 }

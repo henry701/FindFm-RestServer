@@ -58,7 +58,7 @@ namespace RestServer.ShellSupport
         public void AddTrack(FmShellArguments args)
         {
             LOGGER.Info("Adding track by file path");
-            var audioSource = new FileAudioSource(args.Args[0].ToString());
+            var audioSource = new Mp3FileAudioSource(args.Args[0].ToString());
             RadioCastServer.AddTrack(audioSource);
         }
     }
