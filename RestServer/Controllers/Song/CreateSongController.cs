@@ -44,12 +44,12 @@ namespace RestServer.Controllers.Song
 
             Task<FileReference> fileReferenceTask = Task.FromResult<FileReference>(null);
 
-            if (requestBody.MusicaId != null)
+            if (requestBody.IdResource != null)
             {
                 fileReferenceTask = GeneralUtils.ConsumeReferenceTokenFile
                 (
                     MongoWrapper,
-                    requestBody.MusicaId,
+                    requestBody.IdResource,
                     new ObjectId(this.GetCurrentUserId())
                 );
             }
@@ -78,9 +78,9 @@ namespace RestServer.Controllers.Song
             var song = new Models.Song
             {
                 _id = ObjectId.GenerateNewId(creationDate),
-                Name = requestBody.Titulo,
-                RadioAuthorized = requestBody.PermitidoRadio,
-                Original = requestBody.ObraAutoral,
+                Name = requestBody.Nome,
+                RadioAuthorized = requestBody.AutorizadoRadio,
+                Original = requestBody.Autoral,
                 AudioReference = audioReference,
                 DurationSeconds = (uint) await audioNormalizeTask,
                 TimesPlayed = 0,
@@ -112,8 +112,8 @@ namespace RestServer.Controllers.Song
             (Stream newAudio, int seconds) = await AudioHandlerService.ProcessAudio
             (
                 downloadStream,
-                requestBody.ObraAutoral ? null : new int?(30),
-                requestBody.Titulo,
+                requestBody.Autoral ? null : new int?(30),
+                requestBody.Nome,
                 "TODOAutor",
                 fileReference.FileMetadata.ContentType
             );

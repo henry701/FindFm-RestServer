@@ -10,14 +10,12 @@ namespace RestServer.Model.Http.Request
     internal class CreateSongRequest
     {
         [Required]
-        public string Titulo { get; set; }
+        public string Nome { get; set; }
         [Required]
-        public string Descricao { get; set; }
+        public string IdResource { get; set; }
         [Required]
-        public string MusicaId { get; set; }
+        public bool AutorizadoRadio { get; set; }
         [Required]
-        public bool PermitidoRadio { get; set; }
-        [Required]
-        public bool ObraAutoral { get; set; }
+        public bool Autoral { get; set; }
     }
 }
