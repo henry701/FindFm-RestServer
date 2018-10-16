@@ -64,6 +64,16 @@ namespace RestServer.Controllers.Song
 
             var fileReference = await fileReferenceTask;
 
+            if(fileReference == null)
+            {
+                return new ResponseBody
+                {
+                    Code = ResponseCode.NotFound,
+                    Message = "Arquivo não encontrado!",
+                    Success = false,
+                };
+            }
+
             var audioNormalizeTask = NormalizeAudio(fileReference, requestBody);
 
             await audioNormalizeTask;
@@ -112,7 +122,7 @@ namespace RestServer.Controllers.Song
             (Stream newAudio, int seconds) = await AudioHandlerService.ProcessAudio
             (
                 downloadStream,
-                requestBody.Autoral ? null : new int?(30),
+                requestBody.Autoral ? null : new int?(15),
                 requestBody.Nome,
                 "TODOAutor",
                 fileReference.FileMetadata.ContentType

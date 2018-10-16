@@ -158,7 +158,8 @@ namespace FindFm.AudioHandler
             if (maxSeconds.HasValue)
             {
                 readerStream = new CapSecondsByAverageStream(readerStream, maxSeconds.Value);
-                seconds = maxSeconds.Value;
+                seconds = Math.Min(maxSeconds.Value,
+                    (int)(readerStream.Length / readerStream.WaveFormat.AverageBytesPerSecond));
             }
             else
             {
@@ -368,18 +369,12 @@ namespace FindFm.AudioHandler
             this.providedLength = providedLength;
         }
 
-        public override WaveFormat WaveFormat
-        {
-            get { return source.WaveFormat; }
-        }
+        public override WaveFormat WaveFormat => source.WaveFormat;
 
         /// <summary>
         /// Don't know the real length of the source, just return a big number
         /// </summary>
-        public override long Length
-        {
-            get { return providedLength ?? int.MaxValue; }
-        }
+        public override long Length => providedLength ?? int.MaxValue;
 
         public override long Position
         {
