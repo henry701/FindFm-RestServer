@@ -59,34 +59,19 @@ namespace RestServer.Controllers.Post
                 Projection = userProjection
             });
 
-            Task<FileReference> fileReference_Imagem = Task.FromResult<FileReference>(null);
-            if (requestBody.ImagemId != null)
-            {
-                fileReference_Imagem = GeneralUtils.ConsumeReferenceTokenFile(
-                    MongoWrapper,
-                    requestBody.ImagemId,
-                    new ObjectId(this.GetCurrentUserId())
-                );
-            }
-
-            Task<FileReference> fileReference_Video = Task.FromResult<FileReference>(null);
-            if (requestBody.VideoId != null)
-            {
-                fileReference_Video = GeneralUtils.ConsumeReferenceTokenFile(
-                    MongoWrapper,
-                    requestBody.VideoId,
-                    new ObjectId(this.GetCurrentUserId())
-                );
-            }
-
-            Task<FileReference> fileReference_Audio = Task.FromResult<FileReference>(null);
-            if (requestBody.AudioId != null)
-            {
-                fileReference_Audio = GeneralUtils.ConsumeReferenceTokenFile(
-                    MongoWrapper,
-                    requestBody.AudioId,
-                    new ObjectId(this.GetCurrentUserId())
-                );
+            List<FileReference> files = new List<FileReference>();
+            Task<FileReference> fileReference = Task.FromResult<FileReference>(null);
+            foreach (MidiaRequest midiaRequest in requestBody.Midias)
+            {                
+                if (midiaRequest.Id != null)
+                {
+                    fileReference = GeneralUtils.ConsumeReferenceTokenFile(
+                        MongoWrapper,
+                        midiaRequest.Id,
+                        new ObjectId(this.GetCurrentUserId())
+                    );                  
+                    files.Add(await fileReference);
+                }
             }
 
             var postCollection = MongoWrapper.Database.GetCollection<Models.Post>(nameof(Models.Post));
@@ -100,12 +85,7 @@ namespace RestServer.Controllers.Post
                 Text = requestBody.Descricao,
                 Comments = new List<Models.Comment>(),
                 Likes = new HashSet<ObjectId>(),
-                FileReferences = new FileReference[]
-                {
-                     await fileReference_Imagem,
-                     await fileReference_Video,
-                     await fileReference_Audio
-                }.Where(fr => fr != null).ToList(),
+                FileReferences = files,
                 Ip = HttpContext.Connection.RemoteIpAddress,
                 Poster = (await userTask).Single()
             };
