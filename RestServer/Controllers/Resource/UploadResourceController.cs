@@ -111,15 +111,15 @@ namespace RestServer.Controllers.Resource
 
         private static FileType? FileTypeFromMime(string contentType)
         {
-            if(contentType.StartsWith("image", StringComparison.OrdinalIgnoreCase))
+            if(contentType.StartsWith("img", StringComparison.OrdinalIgnoreCase))
             {
                 return FileType.Image;
             }
-            if (contentType.StartsWith("audio", StringComparison.OrdinalIgnoreCase))
+            if (contentType.StartsWith("mus", StringComparison.OrdinalIgnoreCase))
             {
                 return FileType.Audio;
             }
-            if (contentType.StartsWith("video", StringComparison.OrdinalIgnoreCase))
+            if (contentType.StartsWith("vid", StringComparison.OrdinalIgnoreCase))
             {
                 return FileType.Video;
             }
