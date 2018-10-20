@@ -9,9 +9,6 @@ namespace RestServer.Model.Http.Request
     [BindRequired]
     internal class CreatePostRequest
     {
-        //TODO: Mudar pra esse formato
-        //{"descricao":"valor do aluguel do mês","midias":[{"contentType":"img/jpeg","id":"asdasdasdasd"},{"contentType":"mus/mp3","id":"asdasdasd"},{"contentType":"video/mp4","id":"asdasdasdasd"}]}
-
         [Required]
         public string Titulo { get; set; }
         [Required]
