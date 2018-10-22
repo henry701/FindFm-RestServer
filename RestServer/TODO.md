@@ -9,3 +9,6 @@ Paginação com Limit e Skip do MongoDb via QueryParameter padronizado (pode ser
 
 Fazer o Criar Trabalho
 	- (com anexo de mídias existentes, ou novas? Ou ambos?)
+.
+
+Arrumar o Update de Usuário: Não está atualizando comentários

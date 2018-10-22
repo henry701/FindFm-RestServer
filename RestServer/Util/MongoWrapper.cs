@@ -49,6 +49,32 @@ namespace RestServer.Util
 
         private void CreateIndexes()
         {
+            CreatePostIndexes();
+            CreateUserIndexes();
+        }
+
+        private void CreateUserIndexes()
+        {
+            var userCollection = Database.GetCollection<Models.User>(nameof(User));
+            userCollection.Indexes.CreateOne
+            (
+                new CreateIndexModel<Models.User>
+                (
+                    new IndexKeysDefinitionBuilder<Models.User>()
+                    .Hashed(u => u.Email)
+                    ,
+                    new CreateIndexOptions
+                    {
+                        Background = false,
+                        Name = "UserEmailIndex",
+                        Unique = true,
+                    }
+                )
+            );
+        }
+
+        private void CreatePostIndexes()
+        {
             var postCollection = Database.GetCollection<Models.Post>(nameof(Post));
             postCollection.Indexes.CreateOne
             (
@@ -57,18 +83,15 @@ namespace RestServer.Util
                     new IndexKeysDefinitionBuilder<Models.Post>()
                     .Text(p => p.Text)
                     .Text(p => p.Title)
-                    .Text(p => p.Poster.FullName),
+                    .Text(p => p.Poster.FullName)
+                    ,
                     new CreateIndexOptions
                     {
                         Background = false,
                         Name = "PostTextIndex",
                         Unique = false,
                     }
-                ),
-                new CreateOneIndexOptions
-                {
-                    
-                }
+                )
             );
         }
     }
