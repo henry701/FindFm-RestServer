@@ -14,7 +14,7 @@ namespace RestServer.Model.Http.Request
         [Required]
         public string Descricao { get; set; }
         [Required]
-        public string MidiaId { get; set; }
+        public List<MidiaRequest> Midias { get; set; }
 
     }
 }

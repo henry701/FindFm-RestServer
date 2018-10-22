@@ -53,7 +53,7 @@ namespace RestServer.Controllers.Other
                 Data = new
                 {
                     postagens = posts.Select(post => post.BuildPostResponse()),
-                    anuncios = ads,
+                    anuncios = ads.Select(ad => ad.BuildAdResponse()),
                 }
             };
         }
@@ -126,7 +126,7 @@ namespace RestServer.Controllers.Other
                 .Include(ad => ad.Title)
                 .Include(ad => ad.Text)
                 .Include(ad => ad.Poster)
-                .Include(ad => ad.FileReference)
+                .Include(ad => ad.FileReferences)
             ;
 
             var adFilterBuilder = new FilterDefinitionBuilder<Models.Advertisement>();
@@ -150,7 +150,7 @@ namespace RestServer.Controllers.Other
             var adsTask = await adCollection.FindAsync(adFilter, new FindOptions<Models.Advertisement, MetascoredAdvertisement>
             {
                 AllowPartialResults = true,
-                Limit = 2,
+                Limit = 10,
                 Sort = adSort,
                 Projection = adProjection
             });

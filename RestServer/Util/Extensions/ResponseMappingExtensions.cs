@@ -32,6 +32,26 @@ namespace RestServer.Util.Extensions
             };
         }
 
+        public static dynamic BuildAdResponse(this Advertisement ad)
+        {
+            return new
+            {
+                Id = ad._id,
+                Titulo = ad.Title,
+                Descricao = ad.Text,
+                Autor = ad.Poster.BuildUserResponse(),
+                Criacao = ad._id.CreationTime,
+                Midias = ad.FileReferences.Select
+                (
+                    fr => new
+                    {
+                        Id = fr._id.ToString(),
+                        TipoMidia = fr.FileMetadata.FileType.GetAttribute<DisplayAttribute>().ShortName,
+                    }
+                )
+            };
+        }
+
         public static dynamic BuildCommentResponse(this Comment comentario)
         {
             return new

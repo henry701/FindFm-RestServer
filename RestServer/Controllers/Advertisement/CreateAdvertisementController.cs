@@ -60,15 +60,19 @@ namespace RestServer.Controllers.Advertisement
                 Projection = userProjection
             });
 
-            Task<FileReference> fileReferenceTask = Task.FromResult<FileReference>(null);
-            if (requestBody.MidiaId != null)
+            List<FileReference> files = new List<FileReference>();
+            Task<FileReference> fileReference = Task.FromResult<FileReference>(null);
+            foreach (MidiaRequest midiaRequest in requestBody.Midias)
             {
-                fileReferenceTask = GeneralUtils.ConsumeReferenceTokenFile
-                (
-                    MongoWrapper,
-                    requestBody.MidiaId,
-                    new ObjectId(this.GetCurrentUserId())
-                );
+                if (midiaRequest.Id != null)
+                {
+                    fileReference = GeneralUtils.ConsumeReferenceTokenFile(
+                        MongoWrapper,
+                        midiaRequest.Id,
+                        new ObjectId(this.GetCurrentUserId())
+                    );
+                    files.Add(await fileReference);
+                }
             }
 
             var postCollection = MongoWrapper.Database.GetCollection<Models.Advertisement>(nameof(Models.Advertisement));
@@ -80,7 +84,7 @@ namespace RestServer.Controllers.Advertisement
                 _id = ObjectId.GenerateNewId(creationDate),
                 Title = requestBody.Titulo,
                 Text = requestBody.Descricao,
-                FileReference = await fileReferenceTask,
+                FileReferences = files,
                 Poster = (await userTask).Single()
             };
 
