@@ -61,7 +61,7 @@ namespace RestServer.Util
                 new CreateIndexModel<Models.User>
                 (
                     new IndexKeysDefinitionBuilder<Models.User>()
-                    .Hashed(u => u.Email)
+                    .Text(u => u.Email)
                     ,
                     new CreateIndexOptions
                     {
