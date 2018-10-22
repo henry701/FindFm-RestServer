@@ -90,7 +90,7 @@ namespace RestServer.Controllers.User.Edit
                                               .Set(p => p.Poster.FullName, newUser.FullName);
 
             var commentFilterBuilder = new FilterDefinitionBuilder<Comment>();
-            var commentFilter = commentFilterBuilder.Eq(c => c._id, oldUser._id);
+            var commentFilter = commentFilterBuilder.Eq(c => c.Commenter._id, oldUser._id);
             var postCommentFilterBuilder = new FilterDefinitionBuilder<Models.Post>();
             var postCommentFilter = postFilterBuilder.And
             (
