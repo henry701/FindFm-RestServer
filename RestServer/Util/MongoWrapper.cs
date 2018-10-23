@@ -4,6 +4,7 @@ using MongoDB.Driver;
 using RestServer.Util.Extensions;
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace RestServer.Util
 {
@@ -19,6 +20,13 @@ namespace RestServer.Util
 
         public MongoWrapper(string connectionString, string databaseName)
         {
+            MongoClient = new MongoClient(connectionString);
+            Database = MongoClient.GetDatabase(databaseName);
+            Task.WaitAll(CreateCollections(), CreateIndexes(), RegisterConventions());
+        }
+
+        private static Task RegisterConventions()
+        {
             var conventionPack = new ConventionPack
             {
                 new CamelCaseElementNameConvention(),
@@ -26,18 +34,12 @@ namespace RestServer.Util
                 new IgnoreIfNullConvention(true),
             };
             ConventionRegistry.Register("RestServerConventions", conventionPack, any => true);
-
-            MongoClient = new MongoClient(connectionString);
-
-            Database = MongoClient.GetDatabase(databaseName);
-
-            CreateCollections();
-            CreateIndexes();
+            return Task.CompletedTask;
         }
 
-        private void CreateCollections()
+        private async Task CreateCollections()
         {
-            var collectionNames = Database.ListCollectionNames().ToList();
+            var collectionNames = (await Database.ListCollectionNamesAsync()).ToList();
             typeof(Musician).Assembly.GetExportedTypes().Where(mdl =>
                 !collectionNames.Contains(mdl.Name) &&
                 mdl.HasAttribute<RootEntityAttribute>()
@@ -47,51 +49,70 @@ namespace RestServer.Util
             });
         }
 
-        private void CreateIndexes()
+        private async Task CreateIndexes()
         {
-            CreatePostIndexes();
-            CreateUserIndexes();
+            await CreatePostIndexes();
+            await CreateUserIndexes();
         }
 
-        private void CreateUserIndexes()
+        private async Task CreateUserIndexes()
         {
             var userCollection = Database.GetCollection<Models.User>(nameof(User));
-            userCollection.Indexes.CreateOne
+            await userCollection.Indexes.CreateManyAsync
             (
-                new CreateIndexModel<Models.User>
-                (
-                    new IndexKeysDefinitionBuilder<Models.User>()
-                    .Text(u => u.Email)
-                    ,
-                    new CreateIndexOptions
-                    {
-                        Background = false,
-                        Name = "UserEmailIndex",
-                        Unique = true,
-                    }
-                )
+                new[]
+                {
+                    new CreateIndexModel<Models.User>
+                    (
+                        new IndexKeysDefinitionBuilder<Models.User>()
+                        .Ascending(u => u.Email)
+                        ,
+                        new CreateIndexOptions
+                        {
+                            Background = false,
+                            Name = "UserEmailIndex",
+                            Unique = true,
+                        }
+                    ),
+                    new CreateIndexModel<Models.User>
+                    (
+                        new IndexKeysDefinitionBuilder<Models.User>()
+                        .Text(u => u.FullName)
+                        .Text(u => u.About)
+                        ,
+                        new CreateIndexOptions
+                        {
+                            Background = false,
+                            Name = "UserTextIndex",
+                            Unique = false,
+                        }
+                    )
+                }
             );
         }
 
-        private void CreatePostIndexes()
+        private async Task CreatePostIndexes()
         {
             var postCollection = Database.GetCollection<Models.Post>(nameof(Post));
-            postCollection.Indexes.CreateOne
+            await postCollection.Indexes.CreateManyAsync
             (
-                new CreateIndexModel<Models.Post>
-                (
-                    new IndexKeysDefinitionBuilder<Models.Post>()
-                    .Text(p => p.Text)
-                    .Text(p => p.Title)
-                    .Text(p => p.Poster.FullName)
-                    ,
-                    new CreateIndexOptions
-                    {
-                        Background = false,
-                        Name = "PostTextIndex",
-                        Unique = false,
-                    }
-                )
+                new[]
+                {
+                    new CreateIndexModel<Models.Post>
+                    (
+                        new IndexKeysDefinitionBuilder<Models.Post>()
+                        .Text(p => p.Text)
+                        .Text(p => p.Title)
+                        .Text(p => p.Poster.FullName)
+                        ,
+                        new CreateIndexOptions
+                        {
+                            Background = false,
+                            Name = "PostTextIndex",
+                            Unique = false,
+                        }
+                    )
+                }
             );
         }
     }
