@@ -4,13 +4,7 @@ Requisito não funcional: Limite de tamanho consumido no DB por usuário (dispon
 
 Paginação com Limit e Skip do MongoDb via QueryParameter padronizado (pode ser limit e skip mesmo e o app padroniza pra cada tipo quanto ele quer ali)
 
-Mostrar vezes que o perfil foi visualizado? Para atender aquele requisito de estatisticas
-	Eu liquidei o requisito kkkkkkk
-.
-
 Ver uma lógica de limite para anúncio, coloquei 10 só para teste da tela de Anuncios sugeridos, talvez fazer uma API para retornar apenas os anuncios?
-
-Fazer a Consulta de usuário por query text (pesquisa)
 
 Talver fazer a consulta de feed por query text, para procurar anúncios específicos ou posts.
 
