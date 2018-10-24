@@ -12,6 +12,10 @@ Fazer o Criar Trabalho
 	(com anexo de mídias existentes, ou novas? Ou ambos?)
 .
 
+Quebrou o get de post pelo ID
+
+Retornar o tipo de usuario no account/search, ta retornando 'MetascoredUser' pra todos, precisa retornar o tipo do usuário pq não posso colocar um contratante num registro de trabalho
+
 Arrumar o Update de Usuário: Não está atualizando comentários
 	Arrumado, testar
 .
