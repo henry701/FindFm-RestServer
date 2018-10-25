@@ -198,22 +198,7 @@ namespace RestServer.Infrastructure.AspNetCore
         {
             Logger.LogTrace($"{nameof(IStartup.Configure)} called");
 
-            Logger.LogDebug("Adding 'Guid Setter' middleware to pipeline");
-            app.Use(async (context, next) =>
-            {
-                var requestId = Guid.NewGuid().ToString() + Guid.NewGuid().ToString();
-                MappedDiagnosticsLogicalContext.Set("RequestId", requestId);
-                context.TraceIdentifier = requestId;
-                await next.Invoke();
-            });
-
-            var forwardedHeadersOptions = new ForwardedHeadersOptions()
-            {
-                ForwardedHeaders = ForwardedHeaders.All,
-            };
-            forwardedHeadersOptions.KnownProxies.Add(IPAddress.Parse("127.0.0.1"));
-            app.UseForwardedHeaders(forwardedHeadersOptions);
-
+            Logger.LogDebug("Adding the Exception middleware to pipeline");
             if (HostingEnvironment.IsDevelopment() && !ServerConfiguration.DisableErrorTraces)
             {
                 app.UseDeveloperExceptionPage();
@@ -223,10 +208,33 @@ namespace RestServer.Infrastructure.AspNetCore
                 app.UseMiddleware<UnhandledExceptionHandler>();
             }
 
-            app.UseMiddleware<ApplicationExceptionHandler>();
+            Logger.LogDebug("Adding 'Guid Setter' middleware to pipeline");
+            app.Use(async (context, next) =>
+            {
+                var requestId = Guid.NewGuid().ToString() + Guid.NewGuid().ToString();
+                MappedDiagnosticsLogicalContext.Set("RequestId", requestId);
+                context.TraceIdentifier = requestId;
+                await next.Invoke();
+            });
 
+            Logger.LogDebug("Adding the 'Forwarded Headers' middleware to pipeline");
+            var forwardedHeadersOptions = new ForwardedHeadersOptions()
+            {
+                ForwardedHeaders = ForwardedHeaders.All,
+            };
+            forwardedHeadersOptions.KnownProxies.Add(IPAddress.Parse("127.0.0.1"));
+            app.UseForwardedHeaders(forwardedHeadersOptions);
+
+            Logger.LogDebug("Adding the 'Ip Rate Limiting' middleware to pipeline");
             app.UseIpRateLimiting();
 
+            Logger.LogDebug("Adding the ApplicationExceptionHandler middleware to pipeline");
+            app.UseMiddleware<ApplicationExceptionHandler>();
+
+            Logger.LogDebug("Adding the 'Network Logger' middleware to pipeline");
+            app.UseMiddleware<BasicNetworkLoggerMiddleware>();
+
+            Logger.LogDebug("Adding the AuthIssueHandler middleware to pipeline");
             app.UseMiddleware<AuthIssueHandlerMiddleware>();
             app.UseAuthentication();
 

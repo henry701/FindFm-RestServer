@@ -8,7 +8,7 @@ using RestServer.Util.Extensions;
 
 namespace RestServer.Infrastructure.AspNetCore.Middleware
 {
-    public sealed class ApplicationExceptionHandler
+    internal sealed class ApplicationExceptionHandler
     {
         private RequestDelegate Next { get; set; }
 
