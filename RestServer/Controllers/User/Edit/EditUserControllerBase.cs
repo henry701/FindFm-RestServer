@@ -103,6 +103,7 @@ namespace RestServer.Controllers.User.Edit
                                              .Set(p => p.Comments[-1].Commenter.FullName, newUser.FullName);
 
             var postUpdateTask = postCollection.UpdateManyAsync(postFilter, postUpdate);
+            var postCommentUpdateTask = postCollection.UpdateManyAsync(postCommentFilter, postCommentUpdate);
 
             await userUpdateTask;
             await postUpdateTask;

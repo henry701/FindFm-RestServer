@@ -42,11 +42,11 @@ namespace RestServer.Controllers.Song
         {
             var userId = new ObjectId(this.GetCurrentUserId());
 
-            Task<FileReference> fileReferenceTask = Task.FromResult<FileReference>(null);
+            Task<(FileReference, Func<Task>)> fileReferenceTask = Task.FromResult<(FileReference, Func<Task>)>((null, () => Task.CompletedTask));
 
             if (requestBody.IdResource != null)
             {
-                fileReferenceTask = GeneralUtils.ConsumeReferenceTokenFile
+                fileReferenceTask = GeneralUtils.GetFileForReferenceToken
                 (
                     MongoWrapper,
                     requestBody.IdResource,
@@ -62,7 +62,7 @@ namespace RestServer.Controllers.Song
                 userFilterBuilder.Eq(u => u._id, userId)
             );
 
-            var fileReference = await fileReferenceTask;
+            var (fileReference, consumeFileAction) = await fileReferenceTask;
 
             if(fileReference == null)
             {
@@ -101,6 +101,8 @@ namespace RestServer.Controllers.Song
             var userUpdate = userUpdateBuilder.AddToSet(m => m.Songs, song);
 
             var updateResult = await userCollection.UpdateOneAsync(userFilter, userUpdate);
+
+            await consumeFileAction();
 
             return new ResponseBody
             {

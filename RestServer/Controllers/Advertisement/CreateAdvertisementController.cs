@@ -60,18 +60,21 @@ namespace RestServer.Controllers.Advertisement
                 Projection = userProjection
             });
 
-            List<FileReference> files = new List<FileReference>();
-            Task<FileReference> fileReference = Task.FromResult<FileReference>(null);
-            foreach (MidiaRequest midiaRequest in requestBody.Midias)
+            List<(FileReference, Func<Task>)> files = new List<(FileReference, Func<Task>)>();
+            Task<(FileReference, Func<Task>)> fileReference = Task.FromResult<(FileReference, Func<Task>)>((null, () => Task.CompletedTask));
+            if (requestBody.Midias != null)
             {
-                if (midiaRequest.Id != null)
+                foreach (MidiaRequest midiaRequest in requestBody.Midias)
                 {
-                    fileReference = GeneralUtils.ConsumeReferenceTokenFile(
-                        MongoWrapper,
-                        midiaRequest.Id,
-                        new ObjectId(this.GetCurrentUserId())
-                    );
-                    files.Add(await fileReference);
+                    if (midiaRequest.Id != null)
+                    {
+                        fileReference = GeneralUtils.GetFileForReferenceToken(
+                            MongoWrapper,
+                            midiaRequest.Id,
+                            new ObjectId(this.GetCurrentUserId())
+                        );
+                        files.Add(await fileReference);
+                    }
                 }
             }
 
@@ -84,11 +87,13 @@ namespace RestServer.Controllers.Advertisement
                 _id = ObjectId.GenerateNewId(creationDate),
                 Title = requestBody.Titulo,
                 Text = requestBody.Descricao,
-                FileReferences = files,
+                FileReferences = files.Select(f => f.Item1).ToList(),
                 Poster = (await userTask).Single()
             };
 
             await postCollection.InsertOneAsync(ad);
+
+            files.AsParallel().ForAll(async f => await f.Item2());
 
             return new ResponseBody
             {

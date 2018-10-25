@@ -20,9 +20,11 @@ namespace RestServer.Util
 
         public MongoWrapper(string connectionString, string databaseName)
         {
+            Task.WaitAll(RegisterConventions());
             MongoClient = new MongoClient(connectionString);
             Database = MongoClient.GetDatabase(databaseName);
-            Task.WaitAll(CreateCollections(), CreateIndexes(), RegisterConventions());
+            Task.WaitAll(CreateCollections());
+            Task.WaitAll(CreateIndexes());
         }
 
         private static Task RegisterConventions()
@@ -79,6 +81,7 @@ namespace RestServer.Util
                         new IndexKeysDefinitionBuilder<Models.User>()
                         .Text(u => u.FullName)
                         .Text(u => u.About)
+                        //.Text(u => $"{nameof(Musician.InstrumentSkills)}.skill")
                         ,
                         new CreateIndexOptions
                         {
@@ -104,6 +107,7 @@ namespace RestServer.Util
                         .Text(p => p.Text)
                         .Text(p => p.Title)
                         .Text(p => p.Poster.FullName)
+                        .Text(p => p.Poster.About)
                         ,
                         new CreateIndexOptions
                         {

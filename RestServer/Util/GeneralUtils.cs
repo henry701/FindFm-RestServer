@@ -170,12 +170,19 @@ namespace RestServer.Util
             return config;
         }
 
-        public static async Task<FileReference> ConsumeReferenceTokenFile(MongoWrapper mongoWrapper, string tokenId, ObjectId userId)
+        public static async Task<(FileReference, Func<Task>)> GetFileForReferenceToken(MongoWrapper mongoWrapper, ObjectId userId, params string[] tokenIds)
+        {
+            // TODO call the method below, and check total size
+            throw new NotImplementedException();
+        }
+
+        public static async Task<(FileReference, Func<Task>)> GetFileForReferenceToken(MongoWrapper mongoWrapper, string tokenId, ObjectId userId)
         {
             var tokenCollection = mongoWrapper.Database.GetCollection<ReferenceToken>(nameof(ReferenceToken));
 
             var tokenFilterBuilder = new FilterDefinitionBuilder<ReferenceToken>();
-            var tokenFilter = tokenFilterBuilder.And(
+            var tokenFilter = tokenFilterBuilder.And
+            (
                 GeneralUtils.NotDeactivated(tokenFilterBuilder),
                 tokenFilterBuilder.Eq(t => t._id, tokenId),
                 tokenFilterBuilder.Eq(t => t.UserId, userId)
@@ -184,14 +191,11 @@ namespace RestServer.Util
             var tokenUpdateBuilder = new UpdateDefinitionBuilder<ReferenceToken>();
             var tokenUpdate = tokenUpdateBuilder.Set(t => t.DeactivationDate, DateTime.UtcNow);
 
-            DataReferenceToken<ObjectId> token = await tokenCollection.FindOneAndUpdateAsync(
-                tokenFilter,
-                tokenUpdate,
-                new FindOneAndUpdateOptions<ReferenceToken, DataReferenceToken<ObjectId>>
-                {
-                    ReturnDocument = ReturnDocument.Before,
-                }
-            );
+            DataReferenceToken<ObjectId> token = (await tokenCollection.FindAsync(tokenFilter, new FindOptions<ReferenceToken, DataReferenceToken<ObjectId>>
+            {
+                Limit = 1,
+                AllowPartialResults = false,
+            })).SingleOrDefault();
 
             if (token == null)
             {
@@ -221,11 +225,18 @@ namespace RestServer.Util
                 _id = gridFsFileId
             };
 
-            var fileReferenceCollection = mongoWrapper.Database.GetCollection<FileReference>(nameof(FileReference));
-
-            await fileReferenceCollection.InsertOneAsync(fileReference);
-
-            return fileReference;
+            return
+            (
+                fileReference,
+                async () =>
+                {
+                    await tokenCollection.UpdateOneAsync
+                    (
+                        tokenFilter,
+                        tokenUpdate
+                    );
+                }
+            );
         }
     }
 }

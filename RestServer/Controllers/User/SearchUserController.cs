@@ -34,16 +34,17 @@ namespace RestServer.Controllers.User
         [HttpGet]
         public async Task<dynamic> Get([FromQuery] string search)
         {
-            var userCollection = MongoWrapper.Database.GetCollection<MetascoredUser>(nameof(Models.User));
+            var userCollection = MongoWrapper.Database.GetCollection<Models.User>(nameof(Models.User));
 
-            var userProjectionBuilder = new ProjectionDefinitionBuilder<MetascoredUser>();
+            var userProjectionBuilder = new ProjectionDefinitionBuilder<Models.User>();
             var userProjection = userProjectionBuilder
-                .MetaTextScore(nameof(MetascoredUser.MetaScore).WithLowercaseFirstCharacter())
+                .MetaTextScore("MetaScore".WithLowercaseFirstCharacter())
                 .Include(user => user._id)
                 .Include(user => user.FullName)
-                .Include(user => user.Avatar);
+                .Include(user => user.Avatar)
+                .Include("_t");
 
-            var userFilterBuilder = new FilterDefinitionBuilder<MetascoredUser>();
+            var userFilterBuilder = new FilterDefinitionBuilder<Models.User>();
             var userFilter = userFilterBuilder.And
             (
                 userFilterBuilder.Text(search, new TextSearchOptions
@@ -54,10 +55,10 @@ namespace RestServer.Controllers.User
                 GeneralUtils.NotDeactivated(userFilterBuilder)
             );
 
-            var userSortBuilder = new SortDefinitionBuilder<MetascoredUser>();
-            var userSort = userSortBuilder.MetaTextScore(nameof(MetascoredUser.MetaScore).WithLowercaseFirstCharacter());
+            var userSortBuilder = new SortDefinitionBuilder<Models.User>();
+            var userSort = userSortBuilder.MetaTextScore("MetaScore".WithLowercaseFirstCharacter());
 
-            var users = (await userCollection.FindAsync(userFilter, new FindOptions<MetascoredUser>
+            var users = (await userCollection.FindAsync(userFilter, new FindOptions<Models.User>
             {
                 Sort = userSort,
                 Limit = 50,
@@ -70,14 +71,8 @@ namespace RestServer.Controllers.User
                 Code = ResponseCode.GenericSuccess,
                 Success = true,
                 Data = users.ToEnumerable().Select(u => u.BuildUserResponse()),
-                Message = "Usuários encontrado com sucesso!",
+                Message = "Usuários encontrados com sucesso!",
             };
-        }
-
-        private class MetascoredUser : Models.User
-        {
-            public double MetaScore { get; set; }
         }
     }
 }
- 

@@ -79,6 +79,14 @@ namespace RestServer.Infrastructure.AspNetCore
                 options.ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor;
                 options.NullValueHandling = NullValueHandling.Ignore;
             })
+            .AddJsonOptions(options =>
+            {
+                options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+                options.SerializerSettings.DateFormatHandling = DateFormatHandling.IsoDateFormat;
+                options.SerializerSettings.Formatting = HostingEnvironment.IsDevelopment() ? Formatting.Indented : Formatting.None;
+                options.SerializerSettings.ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor;
+                options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
+            })
             .AddAuthorization()
             .AddXmlSerializerFormatters()
             .AddFormatterMappings()
