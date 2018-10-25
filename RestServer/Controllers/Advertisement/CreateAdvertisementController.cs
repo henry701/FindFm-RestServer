@@ -43,7 +43,7 @@ namespace RestServer.Controllers.Advertisement
             var userFilter = userFilterBuilder.And
             (
                 GeneralUtils.NotDeactivated(userFilterBuilder),
-                userFilterBuilder.Eq(user => user._id, userId)
+                userFilterBuilder.Eq(u => u._id, userId)
             );
 
             var userProjectionBuilder = new ProjectionDefinitionBuilder<Models.Contractor>();
@@ -51,6 +51,8 @@ namespace RestServer.Controllers.Advertisement
                 .Include(m => m._id)
                 .Include(m => m.FullName)
                 .Include(m => m.Avatar)
+                .Include(m => m.FileBytesLimit)
+                .Include(m => m.FileBytesOccupied)
                 .Include("_t");
 
             var userTask = userCollection.FindAsync(userFilter, new FindOptions<Models.Contractor>
@@ -60,22 +62,30 @@ namespace RestServer.Controllers.Advertisement
                 Projection = userProjection
             });
 
+            Models.Contractor user = null;
+
             List<(FileReference, Func<Task>)> files = new List<(FileReference, Func<Task>)>();
-            Task<(FileReference, Func<Task>)> fileReference = Task.FromResult<(FileReference, Func<Task>)>((null, () => Task.CompletedTask));
+            Task<(FileReference, Func<Task>)> fileReferenceTask = Task.FromResult<(FileReference, Func<Task>)>((null, () => Task.CompletedTask));
             if (requestBody.Midias != null)
             {
+                long totalSize = 0;
                 foreach (MidiaRequest midiaRequest in requestBody.Midias)
                 {
                     if (midiaRequest.Id != null)
                     {
-                        fileReference = GeneralUtils.GetFileForReferenceToken(
+                        fileReferenceTask = GeneralUtils.GetFileForReferenceToken
+                        (
                             MongoWrapper,
                             midiaRequest.Id,
-                            new ObjectId(this.GetCurrentUserId())
+                            userId
                         );
-                        files.Add(await fileReference);
+                        var (fileReference, expirer) = await fileReferenceTask;
+                        totalSize += fileReference.FileInfo.Size;
+                        files.Add((fileReference, expirer));
                     }
                 }
+                user = (await userTask).Single();
+                GeneralUtils.CheckSizeForUser(totalSize, user.FileBytesOccupied, user.FileBytesLimit);
             }
 
             var postCollection = MongoWrapper.Database.GetCollection<Models.Advertisement>(nameof(Models.Advertisement));
@@ -88,8 +98,8 @@ namespace RestServer.Controllers.Advertisement
                 Title = requestBody.Titulo,
                 Text = requestBody.Descricao,
                 FileReferences = files.Select(f => f.Item1).ToList(),
-                Poster = (await userTask).Single()
-            };
+                Poster = user ?? (await userTask).Single(),
+        };
 
             await postCollection.InsertOneAsync(ad);
 

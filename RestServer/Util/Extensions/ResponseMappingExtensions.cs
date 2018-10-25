@@ -25,7 +25,7 @@ namespace RestServer.Util.Extensions
                     fr => new
                     {
                         Id = fr._id.ToString(),
-                        TipoMidia = fr.FileMetadata.FileType.GetAttribute<DisplayAttribute>().ShortName,
+                        TipoMidia = fr.FileInfo.FileMetadata.FileType.GetAttribute<DisplayAttribute>().ShortName,
                     }
                 ),
                Comentarios = post.Comments.Select(BuildCommentResponse)
@@ -46,7 +46,7 @@ namespace RestServer.Util.Extensions
                     fr => new
                     {
                         Id = fr._id.ToString(),
-                        TipoMidia = fr.FileMetadata.FileType.GetAttribute<DisplayAttribute>().ShortName,
+                        TipoMidia = fr.FileInfo.FileMetadata.FileType.GetAttribute<DisplayAttribute>().ShortName,
                     }
                 )
             };
@@ -64,7 +64,9 @@ namespace RestServer.Util.Extensions
                 },
                 Comentario = comentario.Text,
                 DataComentario = comentario._id.CreationTime,
+#pragma warning disable
                 Likes = comentario.Likes,
+#pragma warning restore
                 Id = comentario._id
             };
         }

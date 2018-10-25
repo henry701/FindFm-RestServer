@@ -38,12 +38,20 @@ namespace RestServer.Util
 
             await insertConfirmationTask;
 
-            await SendEmail(smtpConfig: smtpConfig,
-                            body: $"Seu código de confirmação FindFM: <b>{token}</b>",
-                            subject: "[FindFM] Confirmação de E-mail",
-                            encoding: Encoding.UTF8,
-                            from: new MailAddress(smtpConfig.Email, smtpConfig.DisplayName, Encoding.UTF8),
-                            to: new[] { new MailAddress(user.Email, user.FullName, Encoding.UTF8) });
+            await SendEmail
+            (
+                smtpConfig: smtpConfig,
+                body: $"Seu código de confirmação FindFM: <b>{token}</b>",
+                subject: "[FindFM] Confirmação de E-mail",
+                encoding: Encoding.UTF8,
+                from: new MailAddress(smtpConfig.Email, smtpConfig.DisplayName, Encoding.UTF8),
+                to: new[] { new MailAddress(user.Email, user.FullName, Encoding.UTF8) }
+            )
+            .ContinueWith(t =>
+            {
+                LOGGER.Error(t.Exception, "Sending confirmation e-mail has failed!");
+            },
+            TaskContinuationOptions.OnlyOnFaulted);
         }
 
         public static async Task SendPasswordRecoveryEmail(MongoWrapper mongoWrapper,
@@ -67,12 +75,20 @@ namespace RestServer.Util
 
             await insertConfirmationTask;
 
-            await SendEmail(smtpConfig: smtpConfig,
-                            body: $"Você está recebendo este e-mail pois uma mudança de senha foi requisitada. Caso não tenha requisitado uma mudança de senha, ignore este e-mail.<br>Seu código de nova senha FindFM: <b>{token}</b>",
-                            subject: "[FindFM] Confirmação de E-mail",
-                            encoding: Encoding.UTF8,
-                            from: new MailAddress(smtpConfig.Email, smtpConfig.DisplayName, Encoding.UTF8),
-                            to: new[] { new MailAddress(user.Email, user.FullName, Encoding.UTF8) });
+            await SendEmail
+            (
+                smtpConfig: smtpConfig,
+                body: $"Você está recebendo este e-mail pois uma mudança de senha foi requisitada. Caso não tenha requisitado uma mudança de senha, ignore este e-mail.<br>Seu código de nova senha FindFM: <b>{token}</b>",
+                subject: "[FindFM] Confirmação de E-mail",
+                encoding: Encoding.UTF8,
+                from: new MailAddress(smtpConfig.Email, smtpConfig.DisplayName, Encoding.UTF8),
+                to: new[] { new MailAddress(user.Email, user.FullName, Encoding.UTF8) }
+            )
+            .ContinueWith(t =>
+            {
+                LOGGER.Error(t.Exception, "Sending password recovery e-mail has failed!");
+            },
+            TaskContinuationOptions.OnlyOnFaulted);
         }
 
         public static async Task SendEmail(SmtpConfiguration smtpConfig,

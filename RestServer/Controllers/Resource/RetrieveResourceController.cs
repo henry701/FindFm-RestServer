@@ -38,7 +38,8 @@ namespace RestServer.Controllers.Resource
             try
             {
                 var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database);
-                var downloadStream = await gridFsBucket.OpenDownloadStreamAsync(
+                var downloadStream = await gridFsBucket.OpenDownloadStreamAsync
+                (
                     new ObjectId(id),
                     new GridFSDownloadOptions
                     {
@@ -50,10 +51,11 @@ namespace RestServer.Controllers.Resource
                 {
                     if (downloadStream.FileInfo.MD5.Equals(clientEtagStr.Trim('"'), StringComparison.Ordinal))
                     {
-                        Response.StatusCode = (int)HttpStatusCode.NotModified;
+                        Response.StatusCode = (int) HttpStatusCode.NotModified;
                         return new EmptyResult();
                     }
                 }
+
                 var fileMetadata = BsonSerializer.Deserialize<FileMetadata>(downloadStream.FileInfo.Metadata);
                 string contentType = string.IsNullOrWhiteSpace(fileMetadata.ContentType)
                                      ? "application/octet-stream" : fileMetadata.ContentType;

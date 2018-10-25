@@ -67,18 +67,19 @@ namespace RestServer.Util
             photo = ImageUtils.GuaranteeMaxSize(photo, 1000);
             var photoStream = ImageUtils.ToStream(photo);
             var fileId = ObjectId.GenerateNewId(creationDate);
-            var metadata = new ImageMetadata
-            (
-                new FileMetadata()
+            var fileInfo = new FileInfo
+            {
+                FileMetadata = new FileMetadata
                 {
                     ContentType = "image/jpeg",
                     FileType = FileType.Image
-                }
-            );
-            user.Avatar = new ImageReference()
+                },
+                Size = photoStream.Length,
+            };
+            user.Avatar = new FileReference
             {
                 _id = fileId,
-                FileMetadata = metadata
+                FileInfo = fileInfo
             };
             Task photoTask = gridFsBucket.UploadFromStreamAsync(
                 fileId,
@@ -86,7 +87,7 @@ namespace RestServer.Util
                 photoStream,
                 new GridFSUploadOptions()
                 {
-                    Metadata = metadata.ToBsonDocument()
+                    Metadata = fileInfo.FileMetadata.ToBsonDocument()
                 }
             );
             var streamCloseTask = photoTask.ContinueWith(tsk => photoStream.Close(), TaskContinuationOptions.ExecuteSynchronously);

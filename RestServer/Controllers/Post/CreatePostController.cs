@@ -42,7 +42,7 @@ namespace RestServer.Controllers.Post
             var userFilterBuilder = new FilterDefinitionBuilder<Models.User>();
             var userFilter = userFilterBuilder.And(
                 GeneralUtils.NotDeactivated(userFilterBuilder),
-                userFilterBuilder.Eq(user => user._id, userId)
+                userFilterBuilder.Eq(u => u._id, userId)
             );
 
             var userProjectionBuilder = new ProjectionDefinitionBuilder<Models.User>();
@@ -59,23 +59,30 @@ namespace RestServer.Controllers.Post
                 Projection = userProjection
             });
 
+            Models.User user = null;
+
             List<(FileReference, Func<Task>)> files = new List<(FileReference, Func<Task>)>();
-            Task<(FileReference, Func<Task>)> fileReference = Task.FromResult<(FileReference, Func<Task>)>((null, () => Task.CompletedTask));
+            Task<(FileReference, Func<Task>)> fileReferenceTask = Task.FromResult<(FileReference, Func<Task>)>((null, () => Task.CompletedTask));
             if (requestBody.Midias != null)
             {
+                long totalSize = 0;
                 foreach (MidiaRequest midiaRequest in requestBody.Midias)
                 {
                     if (midiaRequest.Id != null)
                     {
-                        fileReference = GeneralUtils.GetFileForReferenceToken
+                        fileReferenceTask = GeneralUtils.GetFileForReferenceToken
                         (
                             MongoWrapper,
                             midiaRequest.Id,
-                            new ObjectId(this.GetCurrentUserId())
+                            userId
                         );
-                        files.Add(await fileReference);
+                        var (fileReference, expirer) = await fileReferenceTask;
+                        totalSize += fileReference.FileInfo.Size;
+                        files.Add((fileReference, expirer));
                     }
                 }
+                user = (await userTask).Single();
+                GeneralUtils.CheckSizeForUser(totalSize, user.FileBytesOccupied, user.FileBytesLimit);
             }
 
             var postCollection = MongoWrapper.Database.GetCollection<Models.Post>(nameof(Models.Post));
@@ -91,11 +98,12 @@ namespace RestServer.Controllers.Post
                 Likes = new HashSet<ObjectId>(),
                 FileReferences = files.Select(f => f.Item1).ToList(),
                 Ip = HttpContext.Connection.RemoteIpAddress,
-                Poster = (await userTask).Single()
+                Poster = user ?? (await userTask).Single()
             };
 
             await postCollection.InsertOneAsync(post);
 
+            // Consume the file tokens
             files.AsParallel().ForAll(async f => await f.Item2());
 
             return new ResponseBody

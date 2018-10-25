@@ -50,7 +50,7 @@ namespace RestServer.Controllers.Song
                 (
                     MongoWrapper,
                     requestBody.IdResource,
-                    new ObjectId(this.GetCurrentUserId())
+                    userId
                 );
             }
 
@@ -61,6 +61,16 @@ namespace RestServer.Controllers.Song
                 GeneralUtils.NotDeactivated(userFilterBuilder),
                 userFilterBuilder.Eq(u => u._id, userId)
             );
+
+            var userTask = userCollection.FindAsync(userFilter, new FindOptions<Musician>
+            {
+                AllowPartialResults = false,
+                Projection = new ProjectionDefinitionBuilder<Musician>()
+                    .Include(m => m.FileBytesLimit)
+                    .Include(m => m.FileBytesOccupied)
+                    .Include(m => m.FullName)
+                    .Include("_t")
+            });
 
             var (fileReference, consumeFileAction) = await fileReferenceTask;
 
@@ -74,15 +84,12 @@ namespace RestServer.Controllers.Song
                 };
             }
 
-            var audioNormalizeTask = NormalizeAudio(fileReference, requestBody);
+            var user = (await userTask).Single();
+            GeneralUtils.CheckSizeForUser(fileReference.FileInfo.Size, user.FileBytesOccupied, user.FileBytesLimit);
+           
+            var audioNormalizeTask = NormalizeAudio(fileReference, requestBody, user.FullName);
 
             await audioNormalizeTask;
-            var audioReference = new AudioReference
-            {
-                _id = fileReference._id,
-                DeactivationDate = fileReference.DeactivationDate,
-                FileMetadata = new AudioMetadata(fileReference.FileMetadata)
-            };
 
             var creationDate = DateTime.UtcNow;
             var song = new Models.Song
@@ -91,7 +98,7 @@ namespace RestServer.Controllers.Song
                 Name = requestBody.Nome,
                 RadioAuthorized = requestBody.AutorizadoRadio,
                 Original = requestBody.Autoral,
-                AudioReference = audioReference,
+                AudioReference = fileReference,
                 DurationSeconds = (uint) await audioNormalizeTask,
                 TimesPlayed = 0,
                 TimesPlayedRadio = 0,
@@ -113,7 +120,7 @@ namespace RestServer.Controllers.Song
             };
         }
 
-        private async Task<int> NormalizeAudio(FileReference fileReference, CreateSongRequest requestBody)
+        private async Task<int> NormalizeAudio(FileReference fileReference, CreateSongRequest requestBody, string authorName)
         {
             var oldId = fileReference._id;
             var newId = ObjectId.GenerateNewId();
@@ -126,17 +133,17 @@ namespace RestServer.Controllers.Song
                 downloadStream,
                 requestBody.Autoral ? null : new int?(15),
                 requestBody.Nome,
-                "TODOAutor",
-                fileReference.FileMetadata.ContentType
+                authorName,
+                fileReference.FileInfo.FileMetadata.ContentType
             );
 
             fileReference._id = newId;
-            if (fileReference.FileMetadata == null)
+            if (fileReference.FileInfo == null)
             {
-                fileReference.FileMetadata = new AudioMetadata();
+                fileReference.FileInfo = new Models.FileInfo();
             }
-            fileReference.FileMetadata.ContentType = "audio/mpeg";
-            fileReference.FileMetadata.FileType = FileType.Audio;
+            fileReference.FileInfo.FileMetadata.ContentType = "audio/mpeg";
+            fileReference.FileInfo.FileMetadata.FileType = FileType.Audio;
 
             var uploadStream = await gridFsBucket.OpenUploadStreamAsync
             (
@@ -144,7 +151,7 @@ namespace RestServer.Controllers.Song
                 newId.ToString(),
                 new GridFSUploadOptions
                 {
-                    Metadata = fileReference.FileMetadata.ToBsonDocument(),
+                    Metadata = fileReference.FileInfo.FileMetadata.ToBsonDocument(),
                 }
             );
 

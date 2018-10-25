@@ -36,14 +36,14 @@ namespace RestServer.Infrastructure.AspNetCore.Middleware
             finally
             {
                 var logAfterTask = LogAfter(context);
-                await logAfterTask.ContinueWith(task =>
+                var logAfterContinuationTask = logAfterTask.ContinueWith(task =>
                 {
                     Logger.LogError(task.Exception, "NetworkLogger 'after' log failed!");
                 },
                 TaskContinuationOptions.OnlyOnFaulted);
             }
 
-            await logBeforeTask.ContinueWith(task =>
+            var logBeforeContinuationTask = logBeforeTask.ContinueWith(task =>
             {
                 Logger.LogError(task.Exception, "NetworkLogger 'before' log failed!");
             },

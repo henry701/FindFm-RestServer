@@ -54,9 +54,10 @@ namespace RestServer.Controllers.Resource
             {
                  Metadata = new FileMetadata
                  {
-                     ContentType = contentType,
-                     FileType = fileType.Value
-                 }.ToBsonDocument()
+                    ContentType = contentType,
+                    FileType = fileType.Value
+                 }
+                 .ToBsonDocument()
             });
 
             var id = this.GetCurrentUserId();
@@ -65,18 +66,20 @@ namespace RestServer.Controllers.Resource
 
             var generatedToken = await GeneralUtils.GenerateRandomBase64(256);
 
-            var token = new DataReferenceToken<ObjectId>()
+            var token = new DataReferenceToken<(ObjectId, bool)>()
             {
                 UserId = new ObjectId(id),
                 TokenType = TokenType.FileUpload,
                 _id = generatedToken,
-                AdditionalData = generatedFileId,
-                // Auto-Deletion allowed 1 day from now. TODO: Implement job that does it
+                AdditionalData = (generatedFileId, false),
+                // Auto-Deletion allowed 1 day from now.
+                // TODO: Implement job that does auto-deletion
                 // TODO: How to check for FileReference? Can't delete file if it is already used,
                 // in those cases we should delete only the token!
                 // TODO: Maybe a Boolean in AdditionalData which says if this token is being used or not:
                 // If it is, the job will delete only the token, and not the file as well. Sounds good.
-                DeactivationDate = DateTime.UtcNow + TimeSpan.FromDays(1)
+                // Boolean is implemented, only the job is left.
+                DeactivationDate = DateTime.UtcNow + TimeSpan.FromHours(8)
             };
 
             var insertTokenTask = confirmationCollection.InsertOneAsync(token);
@@ -111,15 +114,15 @@ namespace RestServer.Controllers.Resource
 
         private static FileType? FileTypeFromMime(string contentType)
         {
-            if(contentType.StartsWith("img", StringComparison.OrdinalIgnoreCase))
+            if(contentType.StartsWith("img", StringComparison.OrdinalIgnoreCase) || contentType.StartsWith("image", StringComparison.OrdinalIgnoreCase))
             {
                 return FileType.Image;
             }
-            if (contentType.StartsWith("mus", StringComparison.OrdinalIgnoreCase))
+            if (contentType.StartsWith("mus", StringComparison.OrdinalIgnoreCase) || contentType.StartsWith("audio", StringComparison.OrdinalIgnoreCase))
             {
                 return FileType.Audio;
             }
-            if (contentType.StartsWith("vid", StringComparison.OrdinalIgnoreCase))
+            if (contentType.StartsWith("vid", StringComparison.OrdinalIgnoreCase) || contentType.StartsWith("video", StringComparison.OrdinalIgnoreCase)) 
             {
                 return FileType.Video;
             }

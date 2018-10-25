@@ -104,6 +104,14 @@ namespace RestServer.Util
             );
         }
 
+        public static void CheckSizeForUser(long totalSize, long fileBytesOccupied, long fileBytesLimit)
+        {
+            if(totalSize + fileBytesOccupied > fileBytesLimit)
+            {
+                throw new UserLimitException("Limite de armazenamento excedido!");
+            }
+        }
+
         public static FilterDefinition<TDocument> NotDeactivated<TDocument>(FilterDefinitionBuilder<TDocument> builder, DateTime? dateTime = null) where TDocument : IActivationAware
         {
             if(!dateTime.HasValue)
@@ -170,17 +178,19 @@ namespace RestServer.Util
             return config;
         }
 
-        public static async Task<(FileReference, Func<Task>)> GetFileForReferenceToken(MongoWrapper mongoWrapper, ObjectId userId, params string[] tokenIds)
-        {
-            // TODO call the method below, and check total size
-            throw new NotImplementedException();
-        }
-
+        /// <summary>
+        /// Resolves a token to a FileReference, if the token exists for this user.
+        /// The action should be called once the calling code can ensure the file is handled ok.
+        /// </summary>
+        /// <param name="mongoWrapper">For accessing the database</param>
+        /// <param name="tokenId">The token ID to search for</param>
+        /// <param name="userId">The user ID to correlate with the token</param>
+        /// <returns>A Tuple of the FileReference and an async action to expire the token</returns>
         public static async Task<(FileReference, Func<Task>)> GetFileForReferenceToken(MongoWrapper mongoWrapper, string tokenId, ObjectId userId)
         {
-            var tokenCollection = mongoWrapper.Database.GetCollection<ReferenceToken>(nameof(ReferenceToken));
+            var tokenCollection = mongoWrapper.Database.GetCollection<DataReferenceToken<(ObjectId, bool)>>(nameof(ReferenceToken));
 
-            var tokenFilterBuilder = new FilterDefinitionBuilder<ReferenceToken>();
+            var tokenFilterBuilder = new FilterDefinitionBuilder<DataReferenceToken<(ObjectId, bool)>>();
             var tokenFilter = tokenFilterBuilder.And
             (
                 GeneralUtils.NotDeactivated(tokenFilterBuilder),
@@ -188,10 +198,12 @@ namespace RestServer.Util
                 tokenFilterBuilder.Eq(t => t.UserId, userId)
             );
 
-            var tokenUpdateBuilder = new UpdateDefinitionBuilder<ReferenceToken>();
-            var tokenUpdate = tokenUpdateBuilder.Set(t => t.DeactivationDate, DateTime.UtcNow);
+            var tokenUpdateBuilder = new UpdateDefinitionBuilder<DataReferenceToken<(ObjectId, bool)>>();
+            var tokenUpdate = tokenUpdateBuilder
+                .Set(t => t.DeactivationDate, DateTime.UtcNow)
+                .Set(t => t.AdditionalData.Item2, true);
 
-            DataReferenceToken<ObjectId> token = (await tokenCollection.FindAsync(tokenFilter, new FindOptions<ReferenceToken, DataReferenceToken<ObjectId>>
+            DataReferenceToken<(ObjectId, bool)> token = (await tokenCollection.FindAsync(tokenFilter, new FindOptions<DataReferenceToken<(ObjectId, bool)>, DataReferenceToken<(ObjectId, bool)>>
             {
                 Limit = 1,
                 AllowPartialResults = false,
@@ -199,10 +211,10 @@ namespace RestServer.Util
 
             if (token == null)
             {
-                throw new ValidationException("Arquivo não encontrado para persistência!");
+                throw new ValidationException("Token de Arquivo não encontrado!");
             }
 
-            var gridFsFileId = token.AdditionalData;
+            var (gridFsFileId, isUsed) = token.AdditionalData;
 
             var gridFsBucket = new GridFSBucket<ObjectId>(mongoWrapper.Database);
 
@@ -221,7 +233,11 @@ namespace RestServer.Util
 
             var fileReference = new FileReference
             {
-                FileMetadata = BsonSerializer.Deserialize<FileMetadata>(fileInfo.Metadata),
+                FileInfo = new Models.FileInfo
+                {
+                    FileMetadata = BsonSerializer.Deserialize<FileMetadata>(fileInfo.Metadata),
+                    Size = fileInfo.Length
+                },
                 _id = gridFsFileId
             };
 
