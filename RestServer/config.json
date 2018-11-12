@@ -22,10 +22,10 @@
 
   "smtp": {
     "timeout": 30000,
-    "host": "smtp-mail.outlook.com",
+    "host": "smtp.gmail.com",
     "port": 587,
-    "email": "henry_tuori@hotmail.com",
-    "displayName": "henry_tuori@hotmail.com",
-    "password": "aqui nao kkk"
+    "email": "findfmcontato@gmail.com",
+    "displayName": "FindFM - Contato",
+    "password": "ronaldinho*123"
   }
 }
