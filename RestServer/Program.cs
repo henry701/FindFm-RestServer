@@ -109,7 +109,7 @@ namespace RestServer
         }
 
         /// <summary>
-        /// Method that contains the <see cref="NancyHost"/> initialization and starts the <see cref="FmShell.Shell"/>.
+        /// Method that contains initialization for all the pieces of the server application.
         /// </summary>
         /// <param name="sharedData"></param>
         private static async Task StartServer(ServerConfiguration serverConfig, ServerInfo serverInfo, MongoWrapper mongoWrapper)
