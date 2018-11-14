@@ -244,11 +244,32 @@ namespace RestServer.Util
                 fileReference,
                 async () =>
                 {
-                    await tokenCollection.UpdateOneAsync
+                    var tokenUpdateTask = tokenCollection.UpdateOneAsync
                     (
                         tokenFilter,
                         tokenUpdate
                     );
+
+                    var userCollection = mongoWrapper.Database.GetCollection<User>(nameof(User));
+
+                    var userFilterBuilder = new FilterDefinitionBuilder<User>();
+                    var userFilter = userFilterBuilder.And
+                    (
+                        GeneralUtils.NotDeactivated(userFilterBuilder),
+                        userFilterBuilder.Eq(u => u._id, userId)
+                    );
+
+                    var userUpdateBuilder = new UpdateDefinitionBuilder<User>();
+                    var userUpdate = userUpdateBuilder.Inc(u => u.FileBytesOccupied, fileReference.FileInfo.Size);
+
+                    var userUpdateTask = userCollection.UpdateOneAsync
+                    (
+                        userFilter,
+                        userUpdate
+                    );
+
+                    await tokenUpdateTask;
+                    await userUpdateTask;
                 }
             );
         }
