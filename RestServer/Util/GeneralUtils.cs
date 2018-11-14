@@ -188,9 +188,9 @@ namespace RestServer.Util
         /// <returns>A Tuple of the FileReference and an async action to expire the token</returns>
         public static async Task<(FileReference, Func<Task>)> GetFileForReferenceToken(MongoWrapper mongoWrapper, string tokenId, ObjectId userId)
         {
-            var tokenCollection = mongoWrapper.Database.GetCollection<DataReferenceToken<(ObjectId, bool)>>(nameof(ReferenceToken));
+            var tokenCollection = mongoWrapper.Database.GetCollection<DataReferenceToken<ConsumableData<ObjectId>>>(nameof(ReferenceToken));
 
-            var tokenFilterBuilder = new FilterDefinitionBuilder<DataReferenceToken<(ObjectId, bool)>>();
+            var tokenFilterBuilder = new FilterDefinitionBuilder<DataReferenceToken<ConsumableData<ObjectId>>>();
             var tokenFilter = tokenFilterBuilder.And
             (
                 GeneralUtils.NotDeactivated(tokenFilterBuilder),
@@ -198,12 +198,12 @@ namespace RestServer.Util
                 tokenFilterBuilder.Eq(t => t.UserId, userId)
             );
 
-            var tokenUpdateBuilder = new UpdateDefinitionBuilder<DataReferenceToken<(ObjectId, bool)>>();
+            var tokenUpdateBuilder = new UpdateDefinitionBuilder<DataReferenceToken<ConsumableData<ObjectId>>>();
             var tokenUpdate = tokenUpdateBuilder
                 .Set(t => t.DeactivationDate, DateTime.UtcNow)
-                .Set(t => t.AdditionalData.Item2, true);
+                .Set(t => t.AdditionalData.IsConsumed, true);
 
-            DataReferenceToken<(ObjectId, bool)> token = (await tokenCollection.FindAsync(tokenFilter, new FindOptions<DataReferenceToken<(ObjectId, bool)>, DataReferenceToken<(ObjectId, bool)>>
+            DataReferenceToken<ConsumableData<ObjectId>> token = (await tokenCollection.FindAsync(tokenFilter, new FindOptions<DataReferenceToken<ConsumableData<ObjectId>>, DataReferenceToken<ConsumableData<ObjectId>>>
             {
                 Limit = 1,
                 AllowPartialResults = false,
@@ -214,12 +214,10 @@ namespace RestServer.Util
                 throw new ValidationException("Token de Arquivo não encontrado!");
             }
 
-            var (gridFsFileId, isUsed) = token.AdditionalData;
-
             var gridFsBucket = new GridFSBucket<ObjectId>(mongoWrapper.Database);
 
             var fileFilterBuilder = new FilterDefinitionBuilder<GridFSFileInfo<ObjectId>>();
-            var fileFilter = fileFilterBuilder.Eq(finfo => finfo.Id, gridFsFileId);
+            var fileFilter = fileFilterBuilder.Eq(finfo => finfo.Id, token.AdditionalData.Data);
 
             var fileInfo = (await gridFsBucket.FindAsync(fileFilter, new GridFSFindOptions<ObjectId>
             {
@@ -238,7 +236,7 @@ namespace RestServer.Util
                     FileMetadata = BsonSerializer.Deserialize<FileMetadata>(fileInfo.Metadata),
                     Size = fileInfo.Length
                 },
-                _id = gridFsFileId
+                _id = token.AdditionalData.Data
             };
 
             return

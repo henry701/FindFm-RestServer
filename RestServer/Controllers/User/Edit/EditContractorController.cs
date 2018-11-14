@@ -40,7 +40,7 @@ namespace RestServer.Controllers.User.Edit
                 Phone = ValidationUtils.ValidatePhoneNumber(requestBody.Telefone),
                 Ip = TrackedEntity<IPAddress>.From(HttpContext.Connection.RemoteIpAddress, creationDate),
                 FullName = ValidationUtils.ValidateName(requestBody.NomeCompleto),
-                Password = Encryption.Encrypt(ValidationUtils.ValidatePassword(requestBody.Senha)),
+                Password = string.IsNullOrWhiteSpace(requestBody.Senha) ? null : Encryption.Encrypt(ValidationUtils.ValidatePassword(requestBody.Senha)),
                 PremiumLevel = PremiumLevel.None,
                 Avatar = null,
                 About = requestBody.Sobre,
@@ -56,7 +56,7 @@ namespace RestServer.Controllers.User.Edit
                 .Set(u => u.StartDate, newUser.StartDate)
                 .Set(u => u.Email, newUser.Email)
                 .Set(u => u.FullName, newUser.FullName)
-                .Set(u => u.Password, newUser.Password)
+                .Set(u => u.Password, newUser.Password ?? oldUser.Password)
                 .Set(u => u.Phone, newUser.Phone)
                 .Set(u => u.Avatar, newUser.Avatar)
                 .Set(u => u.About, newUser.About);

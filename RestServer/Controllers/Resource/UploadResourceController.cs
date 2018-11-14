@@ -66,12 +66,16 @@ namespace RestServer.Controllers.Resource
 
             var generatedToken = await GeneralUtils.GenerateRandomBase64(256);
 
-            var token = new DataReferenceToken<(ObjectId, bool)>()
+            var token = new DataReferenceToken<ConsumableData<ObjectId>>()
             {
                 UserId = new ObjectId(id),
                 TokenType = TokenType.FileUpload,
                 _id = generatedToken,
-                AdditionalData = (generatedFileId, false),
+                AdditionalData = new ConsumableData<ObjectId>
+                {
+                    Data = generatedFileId,
+                    IsConsumed = false,
+                },
                 // Auto-Deletion allowed 1 day from now.
                 // TODO: Implement job that does auto-deletion
                 // TODO: How to check for FileReference? Can't delete file if it is already used,

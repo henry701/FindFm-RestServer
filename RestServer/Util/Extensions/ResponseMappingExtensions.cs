@@ -43,7 +43,7 @@ namespace RestServer.Util.Extensions
                 Criacao = ad._id.CreationTime,
                 Midias = ad.FileReferences.Select
                 (
-                    fr => new
+                    fr => fr == null ? null : new
                     {
                         Id = fr._id.ToString(),
                         TipoMidia = fr.FileInfo.FileMetadata.FileType.GetAttribute<DisplayAttribute>().ShortName,
