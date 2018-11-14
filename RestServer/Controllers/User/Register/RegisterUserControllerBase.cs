@@ -49,6 +49,9 @@ namespace RestServer.Controllers.User.Register
 
             var user = await BindUser(requestBody, creationDate);
 
+            // 300MB file storage limit default
+            user.FileBytesLimit = 300_000_000;
+
             var gridFsBucket = new GridFSBucket<ObjectId>(MongoWrapper.Database);
 
             Task photoTask = this.UploadPhoto(requestBody.Foto, gridFsBucket, user, creationDate);

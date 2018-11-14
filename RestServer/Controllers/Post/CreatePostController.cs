@@ -50,6 +50,8 @@ namespace RestServer.Controllers.Post
                 .Include(m => m._id)
                 .Include(m => m.FullName)
                 .Include(m => m.Avatar)
+                .Include(m => m.FileBytesLimit)
+                .Include(m => m.FileBytesOccupied)
                 .Include("_t");
 
             var userTask = userCollection.FindAsync(userFilter, new FindOptions<Models.User>
