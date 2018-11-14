@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,8 +12,10 @@ using Microsoft.Extensions.Logging;
 using Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using MongoDB.Driver.GeoJsonObjectModel;
 using RestServer.Infrastructure.AspNetCore;
 using RestServer.Model.Config;
+using RestServer.Model.Http.Request;
 using RestServer.Model.Http.Response;
 using RestServer.Util;
 using RestServer.Util.Extensions;
@@ -33,17 +36,42 @@ namespace RestServer.Controllers.Other
             MongoWrapper = mongoWrapper;
         }
 
-        [HttpGet]
-        public async Task<dynamic> Get()
+        [HttpPut]
+        public void Put(LocationRequest locationRequest)
         {
+            var userId = new ObjectId(this.GetCurrentUserId());
 
+            var userCollection = MongoWrapper.Database.GetCollection<Models.User>(nameof(User));
 
-            return new ResponseBody
-            {
-                Code = ResponseCode.GenericSuccess,
-                Success = true,
-                // Message = "Geolocalização atualizada com sucesso!",
-            };
+            var userFilterBuilder = new FilterDefinitionBuilder<Models.User>();
+            var userFilter = userFilterBuilder.And(
+                GeneralUtils.NotDeactivated(userFilterBuilder),
+                userFilterBuilder.Eq(u => u._id, userId)
+            );
+
+            var userUpdateBuilder = new UpdateDefinitionBuilder<Models.User>();
+            var userUpdate = userUpdateBuilder.Set
+            (
+                u => u.Position,
+                TrackedEntity<GeoJsonPoint<GeoJson2DGeographicCoordinates>>.From
+                (
+                    new GeoJsonPoint<GeoJson2DGeographicCoordinates>
+                    (
+                        new GeoJson2DGeographicCoordinates(locationRequest.Latitude, locationRequest.Longitude)
+                    )
+                )
+            );
+
+            // Do not await the update before returning, only log in case of error
+            var updateResult = userCollection
+                .UpdateOneAsync(userFilter, userUpdate)
+                .ContinueWith
+                (
+                    t => Logger.LogError(t.Exception, "Error while updating user location for user {}", userId),
+                    TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously
+                );
+
+            Response.StatusCode = (int) HttpStatusCode.OK;
         }
     }
 }

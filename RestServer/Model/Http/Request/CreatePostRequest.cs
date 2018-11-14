@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
+using GeoCoordinatePortable;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace RestServer.Model.Http.Request
@@ -16,6 +17,6 @@ namespace RestServer.Model.Http.Request
         [Required]
         public List<MidiaRequest> Midias { get; set; }
 
-
+        public GeoCoordinate Coordenada { get; set; }
     }
 }
