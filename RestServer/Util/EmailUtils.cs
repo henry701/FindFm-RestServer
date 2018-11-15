@@ -74,12 +74,14 @@ namespace RestServer.Util
             var insertConfirmationTask = confirmationCollection.InsertOneAsync(confirmation);
 
             await insertConfirmationTask;
-
+            /*
+            Deu isso aqui no SendEmail: Unexpected exception occured! System.Threading.Tasks.TaskCanceledException: A task was canceled.
+            */
             await SendEmail
             (
                 smtpConfig: smtpConfig,
                 body: $"Você está recebendo este e-mail pois uma mudança de senha foi requisitada. Caso não tenha requisitado uma mudança de senha, ignore este e-mail.<br>Seu código de nova senha FindFM: <b>{token}</b>",
-                subject: "[FindFM] Confirmação de E-mail",
+                subject: "[FindFM] Recuperação de senha - Código",
                 encoding: Encoding.UTF8,
                 from: new MailAddress(smtpConfig.Email, smtpConfig.DisplayName, Encoding.UTF8),
                 to: new[] { new MailAddress(user.Email, user.FullName, Encoding.UTF8) }
