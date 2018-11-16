@@ -85,12 +85,12 @@ namespace RestServer.Util
                 encoding: Encoding.UTF8,
                 from: new MailAddress(smtpConfig.Email, smtpConfig.DisplayName, Encoding.UTF8),
                 to: new[] { new MailAddress(user.Email, user.FullName, Encoding.UTF8) }
-            )
-            .ContinueWith(t =>
-            {
-                LOGGER.Error(t.Exception, "Sending password recovery e-mail has failed!");
-            },
-            TaskContinuationOptions.OnlyOnFaulted);
+            );
+            //.ContinueWith(t =>
+            //{
+            //    LOGGER.Error(t.Exception, "Sending password recovery e-mail has failed!");
+            //},
+            //TaskContinuationOptions.OnlyOnFaulted);
         }
 
         public static async Task SendEmail(SmtpConfiguration smtpConfig,

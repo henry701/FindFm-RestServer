@@ -144,7 +144,7 @@ namespace RestServer.Util
             return new string(chars);
         }
 
-        public static async Task<string> GenerateRandomBase64(int byteLength = 512)
+        public static async Task<string> GenerateRandomBase64(int byteLength = 5)
         {
             byte[] tokenBytes = new byte[byteLength];
             await Task.Run(() => new RNGCryptoServiceProvider().GetBytes(tokenBytes));
