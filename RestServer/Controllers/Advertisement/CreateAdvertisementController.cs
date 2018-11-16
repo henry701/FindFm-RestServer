@@ -15,6 +15,7 @@ using RestServer.Model.Http.Response;
 using RestServer.Util;
 using RestServer.Util.Extensions;
 using MongoDB.Driver;
+using MongoDB.Driver.GeoJsonObjectModel;
 
 namespace RestServer.Controllers.Advertisement
 {
@@ -98,8 +99,9 @@ namespace RestServer.Controllers.Advertisement
                 Title = requestBody.Titulo,
                 Text = requestBody.Descricao,
                 FileReferences = files.Select(f => f.Item1).ToList(),
+                Position = new GeoJsonPoint<GeoJson3DGeographicCoordinates>(requestBody.Coordenada?.ToGeoJsonCoordinate()),
                 Poster = user ?? (await userTask).Single(),
-        };
+            };
 
             await postCollection.InsertOneAsync(ad);
 
