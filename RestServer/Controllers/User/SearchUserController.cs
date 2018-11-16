@@ -42,6 +42,7 @@ namespace RestServer.Controllers.User
                 .Include(user => user._id)
                 .Include(user => user.FullName)
                 .Include(user => user.Avatar)
+                .Include(user => user.About)
                 .Include("_t");
 
             var userFilterBuilder = new FilterDefinitionBuilder<Models.User>();

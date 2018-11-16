@@ -23,7 +23,7 @@ namespace RestServer.Util
         {
             var confirmationCollection = mongoWrapper.Database.GetCollection<ReferenceToken>(typeof(ReferenceToken).Name);
 
-            var tokenTask = GeneralUtils.GenerateRandomBase64();
+            var tokenTask = GeneralUtils.GenerateRandomString(6, "1234567890".ToCharArray());
 
             string token = await tokenTask;
 
@@ -38,7 +38,7 @@ namespace RestServer.Util
 
             await insertConfirmationTask;
 
-            await SendEmail
+            var sendEmailTask = SendEmail
             (
                 smtpConfig: smtpConfig,
                 body: $"Seu código de confirmação FindFM: <b>{token}</b>",
@@ -46,12 +46,15 @@ namespace RestServer.Util
                 encoding: Encoding.UTF8,
                 from: new MailAddress(smtpConfig.Email, smtpConfig.DisplayName, Encoding.UTF8),
                 to: new[] { new MailAddress(user.Email, user.FullName, Encoding.UTF8) }
-            )
-            .ContinueWith(t =>
+            );
+
+            var sendEmailContiuation = sendEmailTask.ContinueWith(t =>
             {
                 LOGGER.Error(t.Exception, "Sending confirmation e-mail has failed!");
             },
             TaskContinuationOptions.OnlyOnFaulted);
+
+            await sendEmailTask;
         }
 
         public static async Task SendPasswordRecoveryEmail(MongoWrapper mongoWrapper,
@@ -60,7 +63,7 @@ namespace RestServer.Util
         {
             var confirmationCollection = mongoWrapper.Database.GetCollection<ReferenceToken>(typeof(ReferenceToken).Name);
 
-            var tokenTask = GeneralUtils.GenerateRandomBase64();
+            var tokenTask = GeneralUtils.GenerateRandomString(6, "1234567890".ToCharArray());
 
             string token = await tokenTask;
 
@@ -74,10 +77,8 @@ namespace RestServer.Util
             var insertConfirmationTask = confirmationCollection.InsertOneAsync(confirmation);
 
             await insertConfirmationTask;
-            /*
-            Deu isso aqui no SendEmail: Unexpected exception occured! System.Threading.Tasks.TaskCanceledException: A task was canceled.
-            */
-            await SendEmail
+
+            var sendEmailTask = SendEmail
             (
                 smtpConfig: smtpConfig,
                 body: $"Você está recebendo este e-mail pois uma mudança de senha foi requisitada. Caso não tenha requisitado uma mudança de senha, ignore este e-mail.<br>Seu código de nova senha FindFM: <b>{token}</b>",
@@ -86,11 +87,14 @@ namespace RestServer.Util
                 from: new MailAddress(smtpConfig.Email, smtpConfig.DisplayName, Encoding.UTF8),
                 to: new[] { new MailAddress(user.Email, user.FullName, Encoding.UTF8) }
             );
-            //.ContinueWith(t =>
-            //{
-            //    LOGGER.Error(t.Exception, "Sending password recovery e-mail has failed!");
-            //},
-            //TaskContinuationOptions.OnlyOnFaulted);
+
+            var sendEmailContinuation = sendEmailTask.ContinueWith(t =>
+            {
+                LOGGER.Error(t.Exception, "Sending password recovery e-mail has failed!");
+            },
+            TaskContinuationOptions.OnlyOnFaulted);
+
+            await sendEmailTask;
         }
 
         public static async Task SendEmail(SmtpConfiguration smtpConfig,

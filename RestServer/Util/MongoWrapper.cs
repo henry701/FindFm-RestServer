@@ -81,7 +81,7 @@ namespace RestServer.Util
                         new IndexKeysDefinitionBuilder<Models.User>()
                         .Text(u => u.FullName)
                         .Text(u => u.About)
-                        //.Text(u => $"{nameof(Musician.InstrumentSkills)}.skill")
+                        .Text($"{nameof(Musician.InstrumentSkills).WithLowercaseFirstCharacter()}.skill")
                         ,
                         new CreateIndexOptions
                         {
