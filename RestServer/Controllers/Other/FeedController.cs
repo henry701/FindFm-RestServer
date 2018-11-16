@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,8 +9,7 @@ using Microsoft.Extensions.Logging;
 using Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using RestServer.Infrastructure.AspNetCore;
-using RestServer.Model.Config;
+using MongoDB.Driver.GeoJsonObjectModel;
 using RestServer.Model.Http.Response;
 using RestServer.Util;
 using RestServer.Util.Extensions;
@@ -37,10 +34,16 @@ namespace RestServer.Controllers.Other
         [AllowAnonymous]
         public async Task<dynamic> Get()
         {
-            var metaPhrase = await ComputePhraseForUser();
+            var (metaPhrase, trackedPositionEntity) = await ComputeDataForUser();
 
-            var postsTask = FetchPosts(metaPhrase);
-            var adsTask = FetchAds(metaPhrase);
+            // Ignore location in calculation if it's older than one day
+            if(trackedPositionEntity?.ModifiedDate - DateTime.UtcNow > TimeSpan.FromDays(1))
+            {
+                trackedPositionEntity = null;
+            }
+
+            var postsTask = FetchPosts(metaPhrase, trackedPositionEntity?.Entity);
+            var adsTask = FetchAds(metaPhrase, trackedPositionEntity?.Entity);
 
             var posts = await postsTask;
             var ads = await adsTask;
@@ -58,13 +61,72 @@ namespace RestServer.Controllers.Other
             };
         }
 
-        private async Task<IEnumerable<MetascoredPost>> FetchPosts(string metaPhrase)
+        private async Task<IEnumerable<T>> FetchEntities<T>
+        (
+            string metaPhrase,
+            ProjectionDefinition<T> projection,
+            IMongoCollection<T> collection,
+            double daysTolerance,
+            int limit,
+            GeoJsonPoint<GeoJson3DGeographicCoordinates> targetPosition = null
+        ) where T : IIdentifiable<ObjectId>, ILocatable, IMetaScored
         {
             var referenceDate = DateTime.UtcNow;
 
-            var postCollection = MongoWrapper.Database.GetCollection<Models.Post>(nameof(Models.Post));
+            var filterBuilder = new FilterDefinitionBuilder<T>();
+            var filter = filterBuilder.And
+            (
+                filterBuilder.Gt
+                (
+                    post => post._id,
+                    new ObjectId(referenceDate.Subtract(TimeSpan.FromDays(daysTolerance)), 0, 0, 0)
+                ),
+                filterBuilder.Or
+                (
+                    filterBuilder.Text(metaPhrase, new TextSearchOptions
+                    {
+                        CaseSensitive = false,
+                        DiacriticSensitive = false,
+                    })
+                    ,
+                    filterBuilder.Exists(p => p._id)
+                )
+            );
 
-            var postProjectionBuilder = new ProjectionDefinitionBuilder<Models.Post>();
+            var sortBuilder = new SortDefinitionBuilder<T>();
+            var sort = sortBuilder.Combine
+            (
+                sortBuilder.MetaTextScore("metaScore"),
+                sortBuilder.Descending(p => p._id)
+            );
+
+            var cursor = await collection.FindAsync(filter, new FindOptions<T>
+            {
+                AllowPartialResults = true,
+                Limit = limit,
+                Sort = sort,
+                Projection = projection
+            });
+
+            var enumerable = cursor.ToEnumerable();
+
+            if (targetPosition != null)
+            {
+                enumerable = enumerable.OrderBy
+                (
+                    item =>
+                        item.Position.Coordinates.ToGeoCoordinate().GetDistanceTo(targetPosition.Coordinates.ToGeoCoordinate())
+                        -
+                        Math.Pow(item.MetaScore, 2)
+                );
+            }
+
+            return enumerable;
+        }
+
+        private async Task<IEnumerable<MetascoredPost>> FetchPosts(string metaPhrase, GeoJsonPoint<GeoJson3DGeographicCoordinates> position = null)
+        {
+            var postProjectionBuilder = new ProjectionDefinitionBuilder<MetascoredPost>();
             var postProjection = postProjectionBuilder
                 .MetaTextScore(nameof(MetascoredPost.MetaScore).WithLowercaseFirstCharacter())
                 .Include(post => post._id)
@@ -76,52 +138,14 @@ namespace RestServer.Controllers.Other
                 .Include(post => post.Comments)
             ;
 
-            var postFilterBuilder = new FilterDefinitionBuilder<Models.Post>();
-            var postFilter = postFilterBuilder.And
-            (
-                postFilterBuilder.Gt
-                (
-                    post => post._id,
-                    new ObjectId(referenceDate.Subtract(TimeSpan.FromDays(7)), 0, 0, 0)
-                ),
-                postFilterBuilder.Or
-                (
-                    postFilterBuilder.Text(metaPhrase, new TextSearchOptions
-                    {
-                        CaseSensitive = false,
-                        DiacriticSensitive = false,
-                    })
-                    ,
-                    postFilterBuilder.Exists(p => p._id)
-                )
-            );
-
-            var postSortBuilder = new SortDefinitionBuilder<Models.Post>();
-            var postSort = postSortBuilder.Combine
-            (
-                postSortBuilder.MetaTextScore(nameof(MetascoredPost.MetaScore).WithLowercaseFirstCharacter()),
-                postSortBuilder.Descending(p => p._id)
-            );
-
-            var postsCursor = await postCollection.FindAsync(postFilter, new FindOptions<Models.Post, MetascoredPost>
-            {
-                AllowPartialResults = true,
-                Limit = 10,
-                Sort = postSort,
-                Projection = postProjection
-            });
-
-            return postsCursor.ToList();
+            return await FetchEntities(metaPhrase, postProjection, MongoWrapper.Database.GetCollection<MetascoredPost>(nameof(Models.Post)), 30, 10, position);
         }
 
-        // TODO: Make it be just like post
-        private async Task<IEnumerable<MetascoredAdvertisement>> FetchAds(string metaPhrase)
+        private async Task<IEnumerable<MetascoredAdvertisement>> FetchAds(string metaPhrase, GeoJsonPoint<GeoJson3DGeographicCoordinates> position = null)
         {
-            var adCollection = MongoWrapper.Database.GetCollection<Models.Advertisement>(nameof(Models.Advertisement));
-
-            var adProjectionBuilder = new ProjectionDefinitionBuilder<Models.Advertisement>();
+            var adProjectionBuilder = new ProjectionDefinitionBuilder<MetascoredAdvertisement>();
             var adProjection = adProjectionBuilder
-                .MetaTextScore(nameof(MetascoredPost.MetaScore).WithLowercaseFirstCharacter())
+                .MetaTextScore(nameof(MetascoredAdvertisement.MetaScore).WithLowercaseFirstCharacter())
                 .Include(ad => ad._id)
                 .Include(ad => ad.Title)
                 .Include(ad => ad.Text)
@@ -129,42 +153,16 @@ namespace RestServer.Controllers.Other
                 .Include(ad => ad.FileReferences)
             ;
 
-            var adFilterBuilder = new FilterDefinitionBuilder<Models.Advertisement>();
-            adFilterBuilder.Text(metaPhrase, new TextSearchOptions
-            {
-                CaseSensitive = false,
-                DiacriticSensitive = false,
-            });
-            var adFilter = adFilterBuilder.Gt
-            (
-                ad => ad._id,
-                new ObjectId(DateTime.UtcNow.Subtract(TimeSpan.FromDays(32)), 0, 0, 0)
-            );
-
-            var adSortBuilder = new SortDefinitionBuilder<Models.Advertisement>();
-            var adSort = adSortBuilder.Combine
-            (
-                adSortBuilder.MetaTextScore(nameof(MetascoredPost.MetaScore).WithLowercaseFirstCharacter())
-            );
-
-            var adsTask = await adCollection.FindAsync(adFilter, new FindOptions<Models.Advertisement, MetascoredAdvertisement>
-            {
-                AllowPartialResults = true,
-                Limit = 10,
-                Sort = adSort,
-                Projection = adProjection
-            });
-
-            return adsTask.ToList();
+            return await FetchEntities(metaPhrase, adProjection, MongoWrapper.Database.GetCollection<MetascoredAdvertisement>(nameof(Models.Advertisement)), 100, 5, position);
         }
 
-        private async Task<string> ComputePhraseForUser()
+        private async Task<(string, TrackedEntity<GeoJsonPoint<GeoJson3DGeographicCoordinates>>)> ComputeDataForUser()
         {
             var userId = this.GetCurrentUserId();
 
             if(userId == null)
             {
-                return "";
+                return ("", null);
             }
 
             var userCollection = MongoWrapper.Database.GetCollection<Models.User>(nameof(Models.User));
@@ -180,7 +178,7 @@ namespace RestServer.Controllers.Other
 
             if(user == null)
             {
-                return "";
+                return ("", null);
             }
 
             var phrase = string.Empty;
@@ -203,17 +201,22 @@ namespace RestServer.Controllers.Other
                 );
             }
 
-            return phrase.ToString();
+            return (phrase, user.TrackedPosition);
         }
 
-        private class MetascoredPost : Models.Post
+        private class MetascoredPost : Models.Post, IMetaScored
         {
             public double MetaScore { get; set; }
         }
 
-        private class MetascoredAdvertisement : Models.Advertisement
+        private class MetascoredAdvertisement : Models.Advertisement, IMetaScored
         {
             public double MetaScore { get; set; }
+        }
+
+        private interface IMetaScored
+        {
+            double MetaScore { get; }
         }
     }
 }

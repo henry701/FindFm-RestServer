@@ -15,6 +15,7 @@ using RestServer.Model.Http.Response;
 using RestServer.Util;
 using RestServer.Util.Extensions;
 using MongoDB.Driver;
+using MongoDB.Driver.GeoJsonObjectModel;
 
 namespace RestServer.Controllers.Post
 {
@@ -100,7 +101,8 @@ namespace RestServer.Controllers.Post
                 Likes = new HashSet<ObjectId>(),
                 FileReferences = files.Select(f => f.Item1).ToList(),
                 Ip = HttpContext.Connection.RemoteIpAddress,
-                Poster = user ?? (await userTask).Single()
+                Poster = user ?? (await userTask).Single(),
+                Position = new GeoJsonPoint<GeoJson3DGeographicCoordinates>(requestBody.Coordenada.ToGeoJsonCoordinate())
             };
 
             await postCollection.InsertOneAsync(post);

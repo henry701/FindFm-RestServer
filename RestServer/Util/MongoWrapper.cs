@@ -55,6 +55,7 @@ namespace RestServer.Util
         {
             await CreatePostIndexes();
             await CreateUserIndexes();
+            await CreateAdvertisementIndexes();
         }
 
         private async Task CreateUserIndexes()
@@ -113,6 +114,56 @@ namespace RestServer.Util
                         {
                             Background = false,
                             Name = "PostTextIndex",
+                            Unique = false,
+                        }
+                    ),
+                    new CreateIndexModel<Models.Post>
+                    (
+                        new IndexKeysDefinitionBuilder<Models.Post>()
+                        .Geo2DSphere(p => p.Position)
+                        ,
+                        new CreateIndexOptions
+                        {
+                            Background = false,
+                            Name = "PostGeoIndex",
+                            Unique = false,
+                        }
+                    )
+                }
+            );
+        }
+
+        private async Task CreateAdvertisementIndexes()
+        {
+            var postCollection = Database.GetCollection<Models.Advertisement>(nameof(Advertisement));
+            await postCollection.Indexes.CreateManyAsync
+            (
+                new[]
+                {
+                    new CreateIndexModel<Models.Advertisement>
+                    (
+                        new IndexKeysDefinitionBuilder<Models.Advertisement>()
+                        .Text(p => p.Text)
+                        .Text(p => p.Title)
+                        .Text(p => p.Poster.FullName)
+                        .Text(p => p.Poster.About)
+                        ,
+                        new CreateIndexOptions
+                        {
+                            Background = false,
+                            Name = "AdvertisementTextIndex",
+                            Unique = false,
+                        }
+                    ),
+                    new CreateIndexModel<Models.Advertisement>
+                    (
+                        new IndexKeysDefinitionBuilder<Models.Advertisement>()
+                        .Geo2DSphere(p => p.Position)
+                        ,
+                        new CreateIndexOptions
+                        {
+                            Background = false,
+                            Name = "AdvertisementGeoIndex",
                             Unique = false,
                         }
                     )

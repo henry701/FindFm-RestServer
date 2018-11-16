@@ -15,6 +15,8 @@ using RestServer.Exceptions;
 using MongoDB.Driver.GridFS;
 using MongoDB.Bson.Serialization;
 using System.Linq.Expressions;
+using MongoDB.Driver.GeoJsonObjectModel;
+using GeoCoordinatePortable;
 
 namespace RestServer.Util
 {
@@ -124,6 +126,34 @@ namespace RestServer.Util
                 ),
                 builder.Gt(doc => doc.DeactivationDate, dateTime.Value)
             );
+        }
+
+        public static double DistanceBetween(GeoJsonPoint<GeoJson3DGeographicCoordinates> position1, GeoJsonPoint<GeoJson3DGeographicCoordinates> position2)
+        {
+            if(position1 == null || position2 == null)
+            {
+                return double.NegativeInfinity;
+            }
+
+            var location1 = new GeoCoordinate(position1.Coordinates.Latitude, position1.Coordinates.Longitude);
+            var location2 = new GeoCoordinate(position2.Coordinates.Latitude, position2.Coordinates.Longitude);
+
+            return location1.GetDistanceTo(location2);
+        }
+
+        public static GeoCoordinate ToGeoCoordinate(this GeoJson2DGeographicCoordinates geoJsonCoordinate)
+        {
+            return new GeoCoordinate(geoJsonCoordinate.Latitude, geoJsonCoordinate.Longitude);
+        }
+
+        public static GeoCoordinate ToGeoCoordinate(this GeoJson3DGeographicCoordinates geoJsonCoordinate)
+        {
+            return new GeoCoordinate(geoJsonCoordinate.Latitude, geoJsonCoordinate.Longitude, geoJsonCoordinate.Altitude);
+        }
+
+        public static GeoJson3DGeographicCoordinates ToGeoJsonCoordinate(this GeoCoordinate geoCoordinate)
+        {
+            return new GeoJson3DGeographicCoordinates(geoCoordinate.Longitude, geoCoordinate.Latitude, geoCoordinate.Altitude);
         }
 
         public static async Task<string> GenerateRandomString(int len = 10, IEnumerable<char> allowedChars = null)

@@ -40,7 +40,7 @@ namespace RestServer.Controllers.User.Register
                 },
                 Phone = ValidationUtils.ValidatePhoneNumber(requestBody.Telefone),
                 Ip = TrackedEntity<IPAddress>.From(HttpContext.Connection.RemoteIpAddress, creationDate),
-                Position = TrackedEntity<GeoJsonPoint<GeoJson2DGeographicCoordinates>>.From(null, creationDate),
+                TrackedPosition = TrackedEntity<GeoJsonPoint<GeoJson3DGeographicCoordinates>>.From(null, creationDate),
                 FullName = ValidationUtils.ValidateName(requestBody.NomeCompleto),
                 Password = Encryption.Encrypt(ValidationUtils.ValidatePassword(requestBody.Senha)),
                 PremiumLevel = PremiumLevel.None,

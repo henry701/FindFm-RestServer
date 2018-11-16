@@ -1,8 +1,5 @@
 ﻿# FindFm - TODO
 
-Requisito não funcional: Limite de tamanho consumido no DB por usuário (disponibilidade p/ outros e segurança)
-  - TESTAR
-
 - API Gerenciar Trabalhos
   - Nao esquecer de atualizar os trabalhos do cara no update tbm (links de outros usuários)
 
@@ -16,6 +13,3 @@ Requisito não funcional: Limite de tamanho consumido no DB por usuário (dispon
 
 Ver uma lógica de limite para anúncio, coloquei 10 só para teste da tela de Anuncios sugeridos, talvez fazer uma API para retornar apenas os anuncios?
   - Paginação com Limit e Skip do MongoDb via QueryParameter padronizado (pode ser limit e skip mesmo e o app padroniza pra cada tipo quanto ele quer ali)
-
-- Recuperar senha:
-	Manda o e-mail mas da erro.

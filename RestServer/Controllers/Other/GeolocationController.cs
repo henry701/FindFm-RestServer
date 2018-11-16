@@ -52,12 +52,12 @@ namespace RestServer.Controllers.Other
             var userUpdateBuilder = new UpdateDefinitionBuilder<Models.User>();
             var userUpdate = userUpdateBuilder.Set
             (
-                u => u.Position,
-                TrackedEntity<GeoJsonPoint<GeoJson2DGeographicCoordinates>>.From
+                u => u.TrackedPosition,
+                TrackedEntity<GeoJsonPoint<GeoJson3DGeographicCoordinates>>.From
                 (
-                    new GeoJsonPoint<GeoJson2DGeographicCoordinates>
+                    new GeoJsonPoint<GeoJson3DGeographicCoordinates>
                     (
-                        new GeoJson2DGeographicCoordinates(locationRequest.Latitude, locationRequest.Longitude)
+                        new GeoJson3DGeographicCoordinates(locationRequest.Latitude, locationRequest.Longitude, locationRequest.Altitude)
                     )
                 )
             );
