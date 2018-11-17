@@ -21,7 +21,7 @@ namespace RestServer.Model.Http.Request
 
     internal enum TipoDenuncia
     {
-        Post,
+        Publicação,
         Perfil,
         Anúncio,
         Música,
