@@ -143,16 +143,19 @@ namespace RestServer.Util
 
         public static GeoCoordinate ToGeoCoordinate(this GeoJson2DGeographicCoordinates geoJsonCoordinate)
         {
+            if (geoJsonCoordinate == null) return null;
             return new GeoCoordinate(geoJsonCoordinate.Latitude, geoJsonCoordinate.Longitude);
         }
 
         public static GeoCoordinate ToGeoCoordinate(this GeoJson3DGeographicCoordinates geoJsonCoordinate)
         {
+            if (geoJsonCoordinate == null) return null;
             return new GeoCoordinate(geoJsonCoordinate.Latitude, geoJsonCoordinate.Longitude, geoJsonCoordinate.Altitude);
         }
 
         public static GeoJson3DGeographicCoordinates ToGeoJsonCoordinate(this GeoCoordinate geoCoordinate)
         {
+            if (geoCoordinate == null) return null;
             return new GeoJson3DGeographicCoordinates(geoCoordinate.Longitude, geoCoordinate.Latitude, geoCoordinate.Altitude);
         }
 

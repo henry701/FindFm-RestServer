@@ -18,13 +18,13 @@ namespace RestServer.Model.Http.Request
     internal sealed class ReportRequest
     {
         [Required]
-        public string Id;
+        public string Id { get; set; }
         [Required]
-        public TipoDenuncia Tipo;
+        public TipoDenuncia Tipo { get; set; }
         [Required]
-        public string Motivo;
+        public string Motivo { get; set; }
         [Required]
-        public string Contato;
+        public string Contato { get; set; }
     }
 
     internal enum TipoDenuncia

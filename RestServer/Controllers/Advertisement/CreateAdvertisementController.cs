@@ -99,7 +99,7 @@ namespace RestServer.Controllers.Advertisement
                 Title = requestBody.Titulo,
                 Text = requestBody.Descricao,
                 FileReferences = files.Select(f => f.Item1).ToList(),
-                Position = new GeoJsonPoint<GeoJson3DGeographicCoordinates>(requestBody.Coordenada?.ToGeoJsonCoordinate()),
+                Position = requestBody.Coordenada == null ? null : new GeoJsonPoint<GeoJson3DGeographicCoordinates>(requestBody.Coordenada.ToGeoJsonCoordinate()),
                 Poster = user ?? (await userTask).Single(),
             };
 

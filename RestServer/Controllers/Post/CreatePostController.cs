@@ -102,7 +102,7 @@ namespace RestServer.Controllers.Post
                 FileReferences = files.Select(f => f.Item1).ToList(),
                 Ip = HttpContext.Connection.RemoteIpAddress,
                 Poster = user ?? (await userTask).Single(),
-                Position = new GeoJsonPoint<GeoJson3DGeographicCoordinates>(requestBody.Coordenada?.ToGeoJsonCoordinate())
+                Position = requestBody.Coordenada == null ? null : new GeoJsonPoint<GeoJson3DGeographicCoordinates>(requestBody.Coordenada.ToGeoJsonCoordinate())
             };
 
             await postCollection.InsertOneAsync(post);

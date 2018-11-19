@@ -12,6 +12,8 @@ using Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using RestServer.Model.Config;
 using RestServer.Model.Http.Request;
 using RestServer.Model.Http.Response;
@@ -50,7 +52,9 @@ namespace RestServer.Controllers.Other
                 $"<b>Motivo:</b> <pre>{requestBody.Motivo}</pre><br>" +
                 $"<b>Informações de Contato:</b> <pre>{requestBody.Contato}</pre><br>" +
                 $"<b>Tipo da Entidade:</b> <i>{typeName}</i><br>" +
-                $"<b>Dump da Entidade:</b> <pre>{(await itemTask).ToJson()}</pre><br>" +
+                $"<b>Dump da Entidade:</b> <pre>" +
+                $"{JsonConvert.SerializeObject(await itemTask, Formatting.Indented,new JsonConverter[] { new StringEnumConverter() })}" +
+                $"</pre><br>" +
                 $"<b></b>";
 
             var address = new MailAddress(SmtpConfiguration.Email, SmtpConfiguration.DisplayName, Encoding.UTF8);
@@ -140,7 +144,7 @@ namespace RestServer.Controllers.Other
             if (tup.Item1 == null)
             {
                 var bucket = new GridFSBucket<ObjectId>(mongoWrapper.Database);
-                return bucket.Find((Expression<Func<GridFSFileInfo<ObjectId>, bool>>)(f => f.Id == entityId));
+                return bucket.Find((Expression<Func<GridFSFileInfo<ObjectId>, bool>>)(f => f.Id == entityId)).Single();
             }
             var collection = mongoWrapper.Database.GetCollection<dynamic>(tup.Item1);
             var findCursorTask = collection.FindAsync
