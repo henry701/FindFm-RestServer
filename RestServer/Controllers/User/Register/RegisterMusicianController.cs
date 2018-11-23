@@ -49,6 +49,7 @@ namespace RestServer.Controllers.User.Register
                 Works = new HashSet<Models.Work>(),
                 Songs = new HashSet<Models.Song>(),
                 About = requestBody.Sobre,
+                Visits = 0
             });
         }
     }

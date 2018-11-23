@@ -46,6 +46,7 @@ namespace RestServer.Controllers.User.Register
                 PremiumLevel = PremiumLevel.None,
                 Avatar = null,
                 About = requestBody.Sobre,
+                Visits = 0
             });
         }
     }
