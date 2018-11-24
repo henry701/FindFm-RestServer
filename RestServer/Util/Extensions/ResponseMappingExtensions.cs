@@ -137,8 +137,11 @@ namespace RestServer.Util.Extensions
                 (
                     musico => new
                     {
-                        Id = musico._id.ToString()                     
-                    }
+                        Id = musico._id.ToString(),
+                        Avatar = musico.Avatar,
+                        FullName = musico.FullName,
+                        Sobre = musico.About
+        }
                 ),
             });
             userObj.usuario.habilidades = musician.InstrumentSkills?.ToDictionary(kv => EnumExtensions.GetAttribute<DisplayAttribute>(kv.Key).Name, kv => (int)kv.Value);

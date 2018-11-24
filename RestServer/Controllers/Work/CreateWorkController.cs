@@ -38,15 +38,15 @@ namespace RestServer.Controllers.Work
         {
             var userId = new ObjectId(this.GetCurrentUserId());
 
-            var userCollection = MongoWrapper.Database.GetCollection<Musician>(nameof(User));
+            var autorCollection = MongoWrapper.Database.GetCollection<Musician>(nameof(User));
 
-            var userFilterBuilder = new FilterDefinitionBuilder<Musician>();
-            var userFilter = userFilterBuilder.And(
-                GeneralUtils.NotDeactivated(userFilterBuilder),
-                userFilterBuilder.Eq(u => u._id, userId)
+            var autorFilterBuilder = new FilterDefinitionBuilder<Musician>();
+            var autorFilter = autorFilterBuilder.And(
+                GeneralUtils.NotDeactivated(autorFilterBuilder),
+                autorFilterBuilder.Eq(u => u._id, userId)
             );
 
-            var userTask = userCollection.FindAsync(userFilter, new FindOptions<Musician>
+            var userTask = autorCollection.FindAsync(autorFilter, new FindOptions<Musician>
             {
                 AllowPartialResults = false,
                 Projection = new ProjectionDefinitionBuilder<Musician>()
@@ -82,6 +82,14 @@ namespace RestServer.Controllers.Work
                 GeneralUtils.CheckSizeForUser(totalSize, thisUser.FileBytesOccupied, thisUser.FileBytesLimit);
             }
 
+            var musicianFilterBuilder = new FilterDefinitionBuilder<Models.User>();
+            var musicianFilter = musicianFilterBuilder.And(
+                GeneralUtils.NotDeactivated(musicianFilterBuilder),
+                musicianFilterBuilder.Eq(u => u._id, userId)
+            );
+
+            var musicianCollection = MongoWrapper.Database.GetCollection<Models.User>(nameof(User));
+
             List<(Models.User, Func<Task>)> musicians = new List<(Models.User, Func<Task>)>();
             Task<(Models.User, Func<Task>)> musiciansTask = Task.FromResult<(Models.User, Func<Task>)>((null, () => Task.CompletedTask));
             if (requestBody.Musicos != null)
@@ -90,14 +98,14 @@ namespace RestServer.Controllers.Work
                 {
                     if (musicianRequest.Id != null)
                     {
-                        userFilterBuilder = new FilterDefinitionBuilder<Musician>();
-                        userFilter = userFilterBuilder.And
+                        musicianFilterBuilder = new FilterDefinitionBuilder<Models.User>();
+                        musicianFilter = musicianFilterBuilder.And
                         (
-                            userFilterBuilder.Eq(u => u._id, new ObjectId(musicianRequest.Id)),
-                            GeneralUtils.NotDeactivated(userFilterBuilder)
+                            musicianFilterBuilder.Eq(u => u._id, new ObjectId(musicianRequest.Id)),
+                            GeneralUtils.NotDeactivated(musicianFilterBuilder)
                         );
 
-                        var musician = (await userCollection.FindAsync(userFilter, new FindOptions<Musician>
+                        var musician = (await musicianCollection.FindAsync(musicianFilter, new FindOptions<Models.User>
                         {
                             Limit = 1,
                         })).SingleOrDefault();
@@ -135,9 +143,6 @@ namespace RestServer.Controllers.Work
                     }
                 }
             }
-
-            var workCollection = MongoWrapper.Database.GetCollection<Models.Work>(nameof(Models.Work));
-
             var creationDate = DateTime.UtcNow;
 
             var work = new Models.Work
@@ -151,15 +156,13 @@ namespace RestServer.Controllers.Work
                 RelatedMusicians = musicians.Select(m => m.Item1).ToList(),
             };
 
-            await workCollection.InsertOneAsync(work);
-
             // Consume the file tokens
             files.AsParallel().ForAll(async f => await f.Item2());
 
             var userUpdateBuilder = new UpdateDefinitionBuilder<Musician>();
             var userUpdate = userUpdateBuilder.AddToSet(w => w.Works, work);
 
-            var updateResult = await userCollection.UpdateOneAsync(userFilter, userUpdate);
+            var updateResult = await autorCollection.UpdateOneAsync(autorFilter, userUpdate);
 
             return new ResponseBody
             {
