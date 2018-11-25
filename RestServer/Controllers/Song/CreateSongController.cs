@@ -108,6 +108,9 @@ namespace RestServer.Controllers.Song
             var userUpdate = userUpdateBuilder.AddToSet(m => m.Songs, song);
 
             var updateResult = await userCollection.UpdateOneAsync(userFilter, userUpdate);
+            //TODO: tirar, coloquei para poder buscar no CreateWork
+            var musicsCollection = MongoWrapper.Database.GetCollection<Models.Song>(nameof(Models.Song));
+            await musicsCollection.InsertOneAsync(song);
 
             await consumeFileAction();
 

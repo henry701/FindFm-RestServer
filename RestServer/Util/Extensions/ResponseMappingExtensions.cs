@@ -122,13 +122,14 @@ namespace RestServer.Util.Extensions
                     fr => new
                     {
                         Id = fr._id.ToString(),
-                        TipoMidia = fr.FileInfo.FileMetadata.FileType.GetAttribute<DisplayAttribute>().ShortName,
+                        FileInfo = fr.FileInfo,
                     }
                 ),
                 musicas = work.Songs?.Where(s => s != null).Select(song => new
                     {
                         nome = song.Name,
                         idResource = song.AudioReference._id,
+                        audioReference = song.AudioReference,
                         duracao = song.DurationSeconds,
                         autoral = song.Original,
                         autorizadoRadio = song.RadioAuthorized

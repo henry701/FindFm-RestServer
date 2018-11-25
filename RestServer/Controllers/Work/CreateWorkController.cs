@@ -110,12 +110,20 @@ namespace RestServer.Controllers.Work
                             Limit = 1,
                         })).SingleOrDefault();
 
+                        Musician simpleMusician = new Musician
+                        {
+                            _id = musician._id,
+                            FullName = musician.FullName,
+                            Avatar = musician.Avatar,
+                            About = musician.About
+                        };                    
+
                         var (fileReference, expirer) = await musiciansTask;
-                        musicians.Add((musician, expirer));
+                        musicians.Add((simpleMusician, expirer));
                     }
                 }
             }
-
+            //TODO: Buscar dentro do perfil, sei la
             var musicsCollection = MongoWrapper.Database.GetCollection<Models.Song>(nameof(Models.Song));
 
             List<(Models.Song, Func<Task>)> songList = new List<(Models.Song, Func<Task>)>();
@@ -124,12 +132,12 @@ namespace RestServer.Controllers.Work
             {
                 foreach (MusicRequest songRequest in requestBody.Musicas)
                 {
-                    if (songRequest.Id != null)
+                    if (songRequest.IdResource != null)
                     {
                         var songFilterBuilder = new FilterDefinitionBuilder<Models.Song>();
                         var songFilter = songFilterBuilder.And
                         (
-                            songFilterBuilder.Eq(u => u._id, new ObjectId(songRequest.Id)),
+                            songFilterBuilder.Eq(u => u._id, new ObjectId(songRequest.IdResource)),
                             GeneralUtils.NotDeactivated(songFilterBuilder)
                         );
 
@@ -138,7 +146,7 @@ namespace RestServer.Controllers.Work
                             Limit = 1,
                         })).SingleOrDefault();
 
-                        var (fileReference, expirer) = await musiciansTask;
+                        var (fileReference, expirer) = await songListTask;
                         songList.Add((song, expirer));
                     }
                 }

@@ -10,6 +10,6 @@ namespace RestServer.Model.Http.Request
     internal class MusicRequest
     {
         [Required]
-        public string Id { get; set; }
+        public string IdResource { get; set; }
     }
 }
