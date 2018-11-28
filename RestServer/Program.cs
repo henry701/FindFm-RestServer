@@ -22,6 +22,7 @@ using MongoDB.Driver.GridFS;
 using LiterCast.AudioSources;
 using System.Collections.Generic;
 using Models;
+using RestServer.Controllers.Other;
 
 namespace RestServer
 {
@@ -230,6 +231,7 @@ namespace RestServer
                         Thread.Sleep(TimeSpan.FromMinutes(1));
                         continue;
                     }
+                    RadioInfoController.CurrentSong = firstSong;
                     var audioRef = firstSong.Song.AudioReference;
                     var gridId = audioRef._id;
                     var fileStreamTask = fsBucket.OpenDownloadStreamAsync(gridId, new GridFSDownloadOptions
@@ -357,15 +359,10 @@ namespace RestServer
                 .Build();
         }
 
-        private class ProjectedMusicianSong
+        internal class ProjectedMusicianSong
         {
             public Song Song { get; set; }
             public ObjectId _id { get; set; }
-
-            public ProjectedMusicianSong()
-            {
-                
-            }
         }
     }
 }
