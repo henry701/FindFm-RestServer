@@ -101,16 +101,23 @@ namespace RestServer.Util.Extensions
             return userObj;
         }
 
-        private static void IncrementMusicianObject(Musician musician, dynamic userObj)
+        internal static dynamic BuildSongResponse(Song song)
         {
-            userObj.usuario.musicas = musician.Songs?.Where(s => s != null).Select(song => new
+            if (song == null) return null;
+            return new
             {
                 nome = song.Name,
                 idResource = song.AudioReference._id,
+                audioReference = song.AudioReference,
                 duracao = song.DurationSeconds,
                 autoral = song.Original,
                 autorizadoRadio = song.RadioAuthorized
-            });
+            };
+        }
+
+        private static void IncrementMusicianObject(Musician musician, dynamic userObj)
+        {
+            userObj.usuario.musicas = musician.Songs?.Where(s => s != null).Select(BuildSongResponse);
             userObj.usuario.trabalhos = musician.Works?.Where(w => w != null).Select(work => new
             {
                 id = work._id.ToString(),
@@ -122,28 +129,13 @@ namespace RestServer.Util.Extensions
                     fr => new
                     {
                         Id = fr._id.ToString(),
+#pragma warning disable
                         FileInfo = fr.FileInfo,
+#pragma warning restore
                     }
                 ),
-                musicas = work.Songs?.Where(s => s != null).Select(song => new
-                    {
-                        nome = song.Name,
-                        idResource = song.AudioReference._id,
-                        audioReference = song.AudioReference,
-                        duracao = song.DurationSeconds,
-                        autoral = song.Original,
-                        autorizadoRadio = song.RadioAuthorized
-                    }),
-                musicos = work.RelatedMusicians.Select
-                (
-                    musico => new
-                    {
-                        Id = musico._id.ToString(),
-                        Avatar = musico.Avatar,
-                        FullName = musico.FullName,
-                        Sobre = musico.About
-        }
-                ),
+                musicas = work.Songs?.Where(s => s != null).Select(BuildSongResponse),
+                musicos = work.RelatedMusicians.Select(BuildUserResponse),
             });
             userObj.usuario.habilidades = musician.InstrumentSkills?.ToDictionary(kv => EnumExtensions.GetAttribute<DisplayAttribute>(kv.Key).Name, kv => (int)kv.Value);
         }

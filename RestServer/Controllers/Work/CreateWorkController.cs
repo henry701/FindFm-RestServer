@@ -164,13 +164,13 @@ namespace RestServer.Controllers.Work
                 RelatedMusicians = musicians.Select(m => m.Item1).ToList(),
             };
 
-            // Consume the file tokens
-            files.AsParallel().ForAll(async f => await f.Item2());
-
             var userUpdateBuilder = new UpdateDefinitionBuilder<Musician>();
             var userUpdate = userUpdateBuilder.AddToSet(w => w.Works, work);
 
             var updateResult = await autorCollection.UpdateOneAsync(autorFilter, userUpdate);
+
+            // Consume the file tokens
+            files.AsParallel().ForAll(async f => await f.Item2());
 
             return new ResponseBody
             {
