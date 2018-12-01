@@ -82,30 +82,29 @@ namespace RestServer.Controllers.Work
                 GeneralUtils.CheckSizeForUser(totalSize, thisUser.FileBytesOccupied, thisUser.FileBytesLimit);
             }
 
-            var musicianFilterBuilder = new FilterDefinitionBuilder<Models.User>();
+            var musicianFilterBuilder = new FilterDefinitionBuilder<Models.Musician>();
             var musicianFilter = musicianFilterBuilder.And(
                 GeneralUtils.NotDeactivated(musicianFilterBuilder),
                 musicianFilterBuilder.Eq(u => u._id, userId)
             );
 
-            var musicianCollection = MongoWrapper.Database.GetCollection<Models.User>(nameof(User));
+            var musicianCollection = MongoWrapper.Database.GetCollection<Models.Musician>(nameof(User));
 
-            List<(Models.User, Func<Task>)> musicians = new List<(Models.User, Func<Task>)>();
-            Task<(Models.User, Func<Task>)> musiciansTask = Task.FromResult<(Models.User, Func<Task>)>((null, () => Task.CompletedTask));
+            List<Models.User> musicians = new List<Models.User>();
             if (requestBody.Musicos != null)
             {
                 foreach (UserModelRequest musicianRequest in requestBody.Musicos)
                 {
                     if (musicianRequest.Id != null)
                     {
-                        musicianFilterBuilder = new FilterDefinitionBuilder<Models.User>();
+                        musicianFilterBuilder = new FilterDefinitionBuilder<Models.Musician>();
                         musicianFilter = musicianFilterBuilder.And
                         (
                             musicianFilterBuilder.Eq(u => u._id, new ObjectId(musicianRequest.Id)),
                             GeneralUtils.NotDeactivated(musicianFilterBuilder)
                         );
 
-                        var musician = (await musicianCollection.FindAsync(musicianFilter, new FindOptions<Models.User>
+                        var musician = (await musicianCollection.FindAsync(musicianFilter, new FindOptions<Models.Musician>
                         {
                             Limit = 1,
                         })).SingleOrDefault();
@@ -117,40 +116,40 @@ namespace RestServer.Controllers.Work
                             Avatar = musician.Avatar,
                             About = musician.About
                         };                    
-
-                        var (fileReference, expirer) = await musiciansTask;
-                        musicians.Add((simpleMusician, expirer));
+                        
+                        musicians.Add(simpleMusician);
                     }
                 }
             }
-            //TODO: Buscar dentro do perfil, sei la
-            var musicsCollection = MongoWrapper.Database.GetCollection<Models.Song>(nameof(Models.Song));
 
-            List<(Models.Song, Func<Task>)> songList = new List<(Models.Song, Func<Task>)>();
-            Task<(Models.Song, Func<Task>)> songListTask = Task.FromResult<(Models.Song, Func<Task>)>((null, () => Task.CompletedTask));
-            if (requestBody.Musicos != null)
+            List<Models.Song> songList = new List<Models.Song>();
+            if (requestBody.Musicas != null)
             {
-                foreach (MusicRequest songRequest in requestBody.Musicas)
+                var userSongFilterBuilder = new FilterDefinitionBuilder<Models.Musician>();
+                var userSongFilter = userSongFilterBuilder.And
+                (
+                    userSongFilterBuilder.Eq(u => u._id, userId),
+                    GeneralUtils.NotDeactivated(userSongFilterBuilder)
+                );
+
+                var userSong = (await musicianCollection.FindAsync(userSongFilter, new FindOptions<Models.Musician>
                 {
-                    if (songRequest.IdResource != null)
-                    {
-                        var songFilterBuilder = new FilterDefinitionBuilder<Models.Song>();
-                        var songFilter = songFilterBuilder.And
-                        (
-                            songFilterBuilder.Eq(u => u._id, new ObjectId(songRequest.IdResource)),
-                            GeneralUtils.NotDeactivated(songFilterBuilder)
-                        );
+                    Limit = 1,
+                    Projection = nameof(Musician.Songs)
+                })).SingleOrDefault();
 
-                        var song = (await musicsCollection.FindAsync(songFilter, new FindOptions<Models.Song>
-                        {
-                            Limit = 1,
-                        })).SingleOrDefault();
-
-                        var (fileReference, expirer) = await songListTask;
-                        songList.Add((song, expirer));
-                    }
-                }
+                songList.AddRange
+                (
+                    userSong
+                    .Songs
+                    .Where
+                    (
+                        s => requestBody.Musicas.Select(m => m.IdResource)
+                            .Contains(s._id.ToString())
+                    )
+                );
             }
+
             var creationDate = DateTime.UtcNow;
 
             var work = new Models.Work
@@ -160,8 +159,8 @@ namespace RestServer.Controllers.Work
                 Description = requestBody.Descricao,
                 FileReferences = files.Select(f => f.Item1).ToList(),
                 Original = requestBody.Original,
-                Songs = songList.Select(s => s.Item1).ToList(),
-                RelatedMusicians = musicians.Select(m => m.Item1).ToList(),
+                Songs = songList,
+                RelatedMusicians = musicians,
             };
 
             var userUpdateBuilder = new UpdateDefinitionBuilder<Musician>();
