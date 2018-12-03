@@ -106,6 +106,7 @@ namespace RestServer.Util.Extensions
             if (song == null) return null;
             return new
             {
+                id = song._id,
                 nome = song.Name,
                 idResource = song.AudioReference._id,
                 audioReference = song.AudioReference,

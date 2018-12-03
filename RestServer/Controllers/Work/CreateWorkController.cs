@@ -144,7 +144,7 @@ namespace RestServer.Controllers.Work
                     .Songs
                     .Where
                     (
-                        s => requestBody.Musicas.Select(m => m.IdResource)
+                        s => requestBody.Musicas.Select(m => m.Id)
                             .Contains(s._id.ToString())
                     )
                 );
