@@ -135,7 +135,7 @@ namespace RestServer.Controllers.Work
                 var userSong = (await musicianCollection.FindAsync(userSongFilter, new FindOptions<Models.Musician>
                 {
                     Limit = 1,
-                    Projection = nameof(Musician.Songs)
+                    Projection = new ProjectionDefinitionBuilder<Musician>().Include(m => m.Songs),
                 })).SingleOrDefault();
 
                 songList.AddRange
