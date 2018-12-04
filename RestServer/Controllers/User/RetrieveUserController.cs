@@ -81,10 +81,10 @@ namespace RestServer.Controllers.User
                 GeneralUtils.NotDeactivated(userFilterBuilder)
             );
 
-            var user = (await userCollection.FindAsync(userFilter, new FindOptions<Models.User>
-            {
-                Limit = 1,
-            })).SingleOrDefault();
+            var userUpdateBuilder = new UpdateDefinitionBuilder<Models.User>();
+            var userUpdate = userUpdateBuilder.Inc(u => u.Visits, 1);
+
+            var user = await userCollection.FindOneAndUpdateAsync(userFilter, userUpdate);
 
             var responseBody = new ResponseBody();
 
