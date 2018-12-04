@@ -76,6 +76,7 @@ namespace RestServer.Util.Extensions
             dynamic userObj = new ExpandoObject();
             userObj.usuario = new ExpandoObject();
             userObj.usuario.id = user._id;
+            userObj.usuario.visitas = user.Visits;
             if (user.Address != null)
             {
                 userObj.usuario.endereco = new
