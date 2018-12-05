@@ -23,6 +23,8 @@ using LiterCast.AudioSources;
 using System.Collections.Generic;
 using Models;
 using RestServer.Controllers.Other;
+using RestServer.Util.Extensions;
+using Newtonsoft.Json;
 
 namespace RestServer
 {
@@ -42,10 +44,10 @@ namespace RestServer
                 int exitCode = await WrappedMain(args);
                 Environment.Exit(0);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 LOGGER.Fatal(e);
-                if(Environment.UserInteractive)
+                if (Environment.UserInteractive)
                 {
                     Console.Beep();
                     Console.Out.WriteLine("Press any key to exit...");
@@ -74,7 +76,7 @@ namespace RestServer
 
             TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
 
-            LOGGER.Info("Entering main program logic");            
+            LOGGER.Info("Entering main program logic");
 
             await StartServer(config, serverInfo, mongoWrapper);
 
@@ -141,8 +143,7 @@ namespace RestServer
 
             var songSortBuilder = new SortDefinitionBuilder<ProjectedMusicianSong>();
             var songSort = songSortBuilder
-                .Ascending(s => s.Song.TimesPlayedRadio)
-                .Descending(s => s.Song.TimesPlayed);
+                .Descending(nameof(ProjectedMusicianSong.Score));
 
             var userFilterBuilder = new FilterDefinitionBuilder<Models.Musician>();
             var userFilter = userFilterBuilder.And
@@ -161,23 +162,6 @@ namespace RestServer
 
             var projectionBuilder = new ProjectionDefinitionBuilder<Models.Musician>();
             var projection = projectionBuilder.Include(m => m.FullName).Include(m => m.Songs);
-
-            var pipeline = PipelineDefinitionBuilder
-                .For<Models.Musician>()
-                .Match(userFilter)
-                .Unwind(m => m.Songs, new AggregateUnwindOptions<Models.Musician>
-                {
-                    PreserveNullAndEmptyArrays = false,
-                    IncludeArrayIndex = null,
-                })
-                .Project(m => new ProjectedMusicianSong
-                {
-                    _id = m._id,
-                    Song = (Song) m.Songs,
-                })
-                .Match(songFilter)
-                .Sort(songSort)
-                .Limit(1);
 
             var fsBucket = new GridFSBucket<ObjectId>(mongoWrapper.Database);
 
@@ -209,29 +193,107 @@ namespace RestServer
 
                 await userCollection.UpdateOneAsync(musSongFilter, musSongUpdate);
 
-                trackMap.Remove(e.OldTrack);
+                if (trackMap.Count > 5)
+                {
+                    trackMap.Remove(e.OldTrack);
+                }
             };
 
             return Task.Run(async () =>
             {
                 while (true)
                 {
+                    // OK Vezes totais que a música foi tocada * 0.5
+                    // OK Vezes totais que a música foi tocada na rádio * -1
+                    // OK Se música está presente na lista das últimas 5 tocadas, -100 
+                    // OK Se o autor da música está presente na lista das últimas 5 tocadas, -50
+                    // Pontuação aleatória para cada música, entre - 10 e + 10
+                    // Número de dias desde o cadastramento da música * -1 
+                    //   Há uma chance de 5% de multiplicar a pontuação resultante por -1 (efeito nostalgia)
+                    var scoreStage = $@"
+                    {{
+                        $addFields:
+                        {{
+                            ""Score"":
+                            {{
+                                $add:
+                                [
+                                    {{
+                                        $multiply: [ ""$Song.timesPlayed"", 0.5 ]
+                                    }},
+                                    {{
+                                        $multiply: [ ""$Song.timesPlayedRadio"", -1 ]
+                                    }},
+                                    {{
+                                        $cond:
+                                        {{
+                                            if:
+                                            {{
+                                                $in: [ ""$Song._id"", [ {trackMap.Select(kvp => $"\"{kvp.Value.Item2.ToString()}\"").DefaultIfEmpty("").Aggregate((s1, s2) => $"{s1.TrimEnd(',')},{s2.TrimEnd(',')},").TrimEnd(',')} ] ]
+                                            }},
+                                            then: -100,
+                                            else: 0
+                                        }}
+                                    }},
+                                    {{
+                                        $cond:
+                                        {{
+                                            if:
+                                            {{
+                                                $in: [ ""$Song._id"", [ {trackMap.Select(kvp => $"\"{kvp.Value.Item1.ToString()}\"").DefaultIfEmpty("").Aggregate((s1, s2) => $"{s1.TrimEnd(',')},{s2.TrimEnd(',')},").TrimEnd(',')} ] ]
+                                            }},
+                                            then: -50,
+                                            else: 0
+                                        }}
+                                    }}
+                                ]
+                            }}
+                        }}
+                    }}";
+
+                    LOGGER.Info("Score stage generated MongoDB query: {}", scoreStage);
+
+                    var pipeline = PipelineDefinitionBuilder
+                    .For<Models.Musician>()
+                    .Match(userFilter)
+                    .Unwind(m => m.Songs, new AggregateUnwindOptions<Models.Musician>
+                    {
+                        PreserveNullAndEmptyArrays = false,
+                        IncludeArrayIndex = null,
+                    })
+                    .Project(m => new ProjectedMusicianSong
+                    {
+                        _id = m._id,
+                        Song = (Song) m.Songs,
+                        Score = 1,
+                    })
+                    .Match(songFilter)
+                    .AppendStage<Musician, ProjectedMusicianSong, ProjectedMusicianSong>(scoreStage)
+                    .Sort(songSort)
+                    .Limit(1);
+
                     var findTask = userCollection.AggregateAsync(pipeline, new AggregateOptions
                     {
-                        AllowDiskUse = false,
-                        UseCursor = false,
+                        AllowDiskUse = true,
+                        BatchSize = 1,
+                        UseCursor = true,
+                        Comment = "Radio Aggregate Query",
+                        TranslationOptions = new ExpressionTranslationOptions
+                        {
+                            StringTranslationMode = AggregateStringTranslationMode.CodePoints
+                        }
                     });
 
                     var findResult = await findTask;
                     var firstSong = findResult.SingleOrDefault();
                     // If no songs, wait a minute before checking again
                     // Mostly not to strain the CPU on development environments
-                    if(firstSong?.Song == null)
+                    if (firstSong?.Song == null)
                     {
                         Thread.Sleep(TimeSpan.FromMinutes(1));
                         continue;
                     }
-                    RadioInfoController.CurrentSong = firstSong;
+                    LOGGER.Info("Next selected song: {}", JsonConvert.SerializeObject(firstSong));
                     var audioRef = firstSong.Song.AudioReference;
                     var gridId = audioRef._id;
                     var fileStreamTask = fsBucket.OpenDownloadStreamAsync(gridId, new GridFSDownloadOptions
@@ -248,6 +310,8 @@ namespace RestServer
                     }
                     trackMap[audioSource] = (firstSong._id, firstSong.Song._id);
                     radioCastServer.AddTrack(audioSource);
+                    RadioInfoController.CurrentSong = firstSong;
+                    LOGGER.Info("Now playing: {}", JsonConvert.SerializeObject(firstSong));
                 }
             });
         }
@@ -361,8 +425,9 @@ namespace RestServer
 
         internal class ProjectedMusicianSong
         {
-            public Song Song { get; set; }
             public ObjectId _id { get; set; }
+            public Song Song { get; set; }
+            public double Score { get; set; }
         }
     }
 }

@@ -28,7 +28,7 @@ namespace RestServer.Controllers.Other
 
         [AllowAnonymous]
         [HttpGet]
-        public async Task<dynamic> Get()
+        public dynamic Get()
         {
             return new ResponseBody
             {
