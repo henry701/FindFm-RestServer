@@ -113,7 +113,8 @@ namespace RestServer.Util.Extensions
                 audioReference = song.AudioReference,
                 duracao = song.DurationSeconds,
                 autoral = song.Original,
-                autorizadoRadio = song.RadioAuthorized
+                autorizadoRadio = song.RadioAuthorized,
+                reproducoes = song.TimesPlayed
             };
         }
 
