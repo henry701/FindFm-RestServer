@@ -72,20 +72,17 @@ namespace RestServer.Controllers.Song
                 };
             }
 
-            var song = user.Songs.SingleOrDefault();
+            var song = user.Songs.DefaultIfEmpty().SingleOrDefault();
 
-            if (song == null)
+            if (song == default)
             {
-                if (user == null)
+                Response.StatusCode = (int) HttpStatusCode.NotFound;
+                return new ResponseBody
                 {
-                    Response.StatusCode = (int) HttpStatusCode.NotFound;
-                    return new ResponseBody
-                    {
-                        Code = ResponseCode.NotFound,
-                        Success = false,
-                        Message = "Música não encontrada!",
-                    };
-                }
+                    Code = ResponseCode.NotFound,
+                    Success = false,
+                    Message = "Música não encontrada!",
+                };
             }
 
             return new ResponseBody
