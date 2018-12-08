@@ -37,18 +37,18 @@ namespace RestServer.Controllers.Song
         {
             var userCollection = MongoWrapper.Database.GetCollection<Models.Musician>(nameof(Models.User));
 
-            var userFilterBuilder = new FilterDefinitionBuilder<Models.Musician>();
-            var userFilter = userFilterBuilder.And
-            (
-                userFilterBuilder.Eq(u => u._id, new ObjectId(userId)),
-                GeneralUtils.NotDeactivated(userFilterBuilder)
-            );
-
             var songFilterBuilder = new FilterDefinitionBuilder<Models.Song>();
             var songFilter = songFilterBuilder.And
             (
                 songFilterBuilder.Eq(s => s._id, new ObjectId(songId)),
                 GeneralUtils.NotDeactivated(songFilterBuilder)
+            );
+
+            var userFilterBuilder = new FilterDefinitionBuilder<Models.Musician>();
+            var userFilter = userFilterBuilder.And
+            (
+                userFilterBuilder.Eq(u => u._id, new ObjectId(userId)),
+                GeneralUtils.NotDeactivated(userFilterBuilder)
             );
 
             var userProjectionBuilder = new ProjectionDefinitionBuilder<Models.Musician>();
@@ -68,7 +68,7 @@ namespace RestServer.Controllers.Song
                 {
                     Code = ResponseCode.NotFound,
                     Success = false,
-                    Message = "Música não encontrada!",
+                    Message = "Usuário não encontrado!",
                 };
             }
 
