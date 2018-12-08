@@ -41,18 +41,24 @@ namespace RestServer.Controllers.Song
             var userFilter = userFilterBuilder.And
             (
                 userFilterBuilder.Eq(u => u._id, new ObjectId(userId)),
-                GeneralUtils.NotDeactivated(userFilterBuilder),
-                userFilterBuilder.ElemMatch(m => m.Songs, s => s._id == new ObjectId(songId)),
-                GeneralUtils.NotDeactivated(userFilterBuilder, m => m.Songs)
+                GeneralUtils.NotDeactivated(userFilterBuilder)
+            );
+
+            var songFilterBuilder = new FilterDefinitionBuilder<Models.Song>();
+            var songFilter = songFilterBuilder.And
+            (
+                songFilterBuilder.Eq(s => s._id, new ObjectId(songId)),
+                GeneralUtils.NotDeactivated(songFilterBuilder)
             );
 
             var userProjectionBuilder = new ProjectionDefinitionBuilder<Models.Musician>();
             var userProjection = userProjectionBuilder
-                .Include($"{nameof(Musician.Songs).WithLowercaseFirstCharacter()}.$");
+                .ElemMatch(m => m.Songs, songFilter);
 
             var user = (await userCollection.FindAsync(userFilter, new FindOptions<Models.Musician>
             {
                 Limit = 1,
+                Projection = userProjection,
             })).SingleOrDefault();
 
             if (user == null)
