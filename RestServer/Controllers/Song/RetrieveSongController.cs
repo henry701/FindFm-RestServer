@@ -72,7 +72,7 @@ namespace RestServer.Controllers.Song
                 };
             }
 
-            var song = user.Songs.DefaultIfEmpty().SingleOrDefault();
+            var song = user.Songs?.SingleOrDefault();
 
             if (song == default)
             {
