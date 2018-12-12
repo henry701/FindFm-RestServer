@@ -171,7 +171,13 @@ namespace RestServer
 
             radioCastServer.OnTrackChanged += async (s, e) =>
             {
-                RadioInfoController.CurrentSong = trackHistory.Where(th => th.Item1.Equals(e.NewTrack)).Select(th => th.Item2).LastOrDefault();
+                List<(IAudioSource, ProjectedMusicianSong)> myTrackHistory;
+                lock (trackHistory)
+                {
+                    myTrackHistory = trackHistory.ToList();
+                }
+
+                RadioInfoController.CurrentSong = myTrackHistory.Where(th => th.Item1.Equals(e.NewTrack)).Select(th => th.Item2).LastOrDefault();
                 LOGGER.Info("Now playing: {}", JsonConvert.SerializeObject(RadioInfoController.CurrentSong));
 
                 onTrackChangedTE.Set();
@@ -181,7 +187,7 @@ namespace RestServer
                     return;
                 }
 
-                var oldTrack = trackHistory.Where(th => th.Item1.Equals(e.OldTrack)).Select(th => th.Item2).LastOrDefault();
+                var oldTrack = myTrackHistory.Where(th => th.Item1.Equals(e.OldTrack)).Select(th => th.Item2).LastOrDefault();
                 var oldMusicianId = oldTrack._id;
                 var oldTrackId = oldTrack.Song._id;
 
@@ -198,9 +204,12 @@ namespace RestServer
                 await userCollection.UpdateOneAsync(musSongFilter, musSongUpdate);
 
                 // Remove oldest, only keep 5 in history
-                if (trackHistory.Count > 5)
+                if (myTrackHistory.Count > 5)
                 {
-                    trackHistory.RemoveAt(0);
+                    lock (trackHistory)
+                    {
+                        trackHistory.RemoveAt(0);
+                    }
                 }
             };
 
@@ -208,6 +217,11 @@ namespace RestServer
             {
                 while (true)
                 {
+                    List<(IAudioSource, ProjectedMusicianSong)> myTrackHistory;
+                    lock (trackHistory)
+                    {
+                        myTrackHistory = trackHistory.ToList();
+                    }
                     // OK Vezes totais que a música foi tocada * 0.5
                     // OK Vezes totais que a música foi tocada na rádio * -1
                     // OK Se música está presente na lista das últimas 5 tocadas, -100 
@@ -234,7 +248,7 @@ namespace RestServer
                                         {{
                                             if:
                                             {{
-                                                $in: [ ""$_id"", [ {trackHistory.Select(th => $"ObjectId(\"{th.Item2._id.ToString()}\")").DefaultIfEmpty("").Aggregate((s1, s2) => $"{s1.TrimEnd(',')},{s2.TrimEnd(',')},").TrimEnd(',')} ] ]
+                                                $in: [ ""$_id"", [ {myTrackHistory.Select(th => $"ObjectId(\"{th.Item2._id.ToString()}\")").DefaultIfEmpty("").Aggregate((s1, s2) => $"{s1.TrimEnd(',')},{s2.TrimEnd(',')},").TrimEnd(',')} ] ]
                                             }},
                                             then: -50,
                                             else: 0
@@ -245,7 +259,7 @@ namespace RestServer
                                         {{
                                             if:
                                             {{
-                                                $in: [ ""$Song._id"", [ {trackHistory.Select(th => $"ObjectId(\"{th.Item2.Song._id.ToString()}\")").DefaultIfEmpty("").Aggregate((s1, s2) => $"{s1.TrimEnd(',')},{s2.TrimEnd(',')},").TrimEnd(',')} ] ]
+                                                $in: [ ""$Song._id"", [ {myTrackHistory.Select(th => $"ObjectId(\"{th.Item2.Song._id.ToString()}\")").DefaultIfEmpty("").Aggregate((s1, s2) => $"{s1.TrimEnd(',')},{s2.TrimEnd(',')},").TrimEnd(',')} ] ]
                                             }},
                                             then: -100,
                                             else: 0
@@ -313,7 +327,10 @@ namespace RestServer
                         onTrackChangedTE.WaitOne();
                         onTrackChangedTE.Reset();
                     }
-                    trackHistory.Add((audioSource, firstSong));
+                    lock (trackHistory)
+                    {
+                        trackHistory.Add((audioSource, firstSong));
+                    }
                     radioCastServer.AddTrack(audioSource);
                 }
             });
