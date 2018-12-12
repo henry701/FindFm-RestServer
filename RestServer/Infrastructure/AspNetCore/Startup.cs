@@ -164,7 +164,13 @@ namespace RestServer.Infrastructure.AspNetCore
                 rateLimitOptions.GeneralRules = ServerConfiguration.IpRateLimitOptions.GeneralRules;
                 rateLimitOptions.StackBlockedRequests = ServerConfiguration.IpRateLimitOptions.StackBlockedRequests;
                 rateLimitOptions.RealIpHeader = ServerConfiguration.IpRateLimitOptions.RealIpHeader;
-                rateLimitOptions.ClientWhitelist = ServerConfiguration.IpRateLimitOptions.ClientWhitelist;
+                rateLimitOptions.IpPolicyPrefix = ServerConfiguration.IpRateLimitOptions.IpPolicyPrefix;
+                rateLimitOptions.EndpointWhitelist = ServerConfiguration.IpRateLimitOptions.EndpointWhitelist;
+                rateLimitOptions.EnableEndpointRateLimiting = ServerConfiguration.IpRateLimitOptions.EnableEndpointRateLimiting;
+                rateLimitOptions.QuotaExceededMessage = ServerConfiguration.IpRateLimitOptions.QuotaExceededMessage;
+                rateLimitOptions.RateLimitCounterPrefix = ServerConfiguration.IpRateLimitOptions.RateLimitCounterPrefix;
+                rateLimitOptions.ClientIdHeader = ServerConfiguration.IpRateLimitOptions.ClientIdHeader;
+                rateLimitOptions.DisableRateLimitHeaders = ServerConfiguration.IpRateLimitOptions.DisableRateLimitHeaders;
             });
         }
 

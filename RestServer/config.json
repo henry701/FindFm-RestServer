@@ -19,15 +19,30 @@
   "disableErrorTraces": true,
 
   "ipRateLimitOptions": {
-    "EnableEndpointRateLimiting": false,
+    "EnableEndpointRateLimiting": true,
     "StackBlockedRequests": false,
     "HttpStatusCode": 429,
     "EndpointWhitelist": [  ],
     "GeneralRules": [
       {
+        "Endpoint": "*:/login",
+        "Period": "1s",
+        "Limit": 1
+      },
+      {
+        "Endpoint": "*:/login",
+        "Period": "30s",
+        "Limit": 15
+      },
+      {
+        "Endpoint": "*:/login",
+        "Period": "60s",
+        "Limit": 20
+      },
+      {
         "Endpoint": "*",
         "Period": "1s",
-        "Limit": 15
+        "Limit": 20
       },
       {
         "Endpoint": "*",
