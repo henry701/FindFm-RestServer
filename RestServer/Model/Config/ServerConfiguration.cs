@@ -1,4 +1,5 @@
 ﻿using System.Runtime.Serialization;
+using AspNetCoreRateLimit;
 using Newtonsoft.Json;
 
 namespace RestServer.Model.Config
@@ -11,33 +12,38 @@ namespace RestServer.Model.Config
     [JsonObject]
     public sealed class ServerConfiguration
     {
-        /// <inheritdoc cref="Config.MongodbConfiguration"/>
+        /// <inheritdoc cref="MongodbConfiguration"/>
         [DataMember(Name = "mongodb", IsRequired = true)]
         [JsonProperty(PropertyName = "mongodb", Required = Required.Always)]
         public MongodbConfiguration Mongodb { get; private set; }
 
-        /// <inheritdoc cref="Config.SmtpConfiguration"/>
+        /// <inheritdoc cref="SmtpConfiguration"/>
         [DataMember(Name = "smtp", IsRequired = true)]
         [JsonProperty(PropertyName = "smtp", Required = Required.Always)]
         public SmtpConfiguration Smtp { get; private set; }
 
-        /// <inheritdoc cref="Config.ListenConfiguration"/>
+        /// <inheritdoc cref="ListenConfiguration"/>
         [DataMember(Name = "listening", IsRequired = true)]
         [JsonProperty(PropertyName = "listening", Required = Required.Always)]
         public ListenConfiguration Listening { get; private set; }
 
-        /// <inheritdoc cref="Config.RadioCasterConfiguration"/>
+        /// <inheritdoc cref="RadioCasterConfiguration"/>
         [DataMember(Name = "radio", IsRequired = true)]
         [JsonProperty(PropertyName = "radio", Required = Required.Always)]
         public RadioCasterConfiguration Radio { get; private set; }
 
         /// <summary>
         /// Whether error traces should be disabled when an error occurs.
-        /// Recomended <see langword="true"/> for production.
+        /// Recomended value of <see langword="true"/> for production.
         /// </summary>
         [DataMember(Name = "disableErrorTraces", IsRequired = true)]
         [JsonProperty(PropertyName = "disableErrorTraces", Required = Required.Always)]
         public bool DisableErrorTraces { get; private set; }
+
+        /// <inheritdoc cref="IpRateLimitOptions"/>
+        [DataMember(Name = "ipRateLimitOptions", IsRequired = true)]
+        [JsonProperty(PropertyName = "ipRateLimitOptions", Required = Required.Always)]
+        public IpRateLimitOptions IpRateLimitOptions { get; private set; }
 
         /// <summary>
         /// Prompt prefix text to be shown in <see cref="FmShell.Shell"/> Console after application boot.

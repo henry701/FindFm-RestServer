@@ -18,6 +18,25 @@
 
   "disableErrorTraces": true,
 
+  "ipRateLimitOptions": {
+    "EnableEndpointRateLimiting": false,
+    "StackBlockedRequests": false,
+    "HttpStatusCode": 429,
+    "EndpointWhitelist": [  ],
+    "GeneralRules": [
+      {
+        "Endpoint": "*",
+        "Period": "1s",
+        "Limit": 15
+      },
+      {
+        "Endpoint": "*",
+        "Period": "3s",
+        "Limit": 35
+      }
+    ]
+  },
+
   "consolePrompt": "#FindFMServer>",
 
   "smtp": {

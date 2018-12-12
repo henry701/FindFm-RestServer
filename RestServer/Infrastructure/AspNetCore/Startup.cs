@@ -142,7 +142,7 @@ namespace RestServer.Infrastructure.AspNetCore
             });
         }
 
-        private static void ConfigureIpRateLimiting(IServiceCollection services)
+        private void ConfigureIpRateLimiting(IServiceCollection services)
         {
             // needed to store rate limit counters and ip rules
             services.AddMemoryCache(setupCache =>
@@ -158,39 +158,13 @@ namespace RestServer.Infrastructure.AspNetCore
             // configure rate limiting
             services.Configure<IpRateLimitOptions>(rateLimitOptions =>
             {
-                rateLimitOptions.HttpStatusCode = 429; // Too Many Requests
-                rateLimitOptions.ClientWhitelist = new List<string>();
-                rateLimitOptions.IpWhitelist = new List<string>();
-                rateLimitOptions.GeneralRules = new List<RateLimitRule>()
-                {
-                    new RateLimitRule
-                    {
-                        Endpoint = "*",
-                        Limit = 15,
-                        Period = "1s",
-                    },
-                    new RateLimitRule
-                    {
-                        Endpoint = "*",
-                        Limit = 20,
-                        Period = "3s",
-                    },
-                    new RateLimitRule
-                    {
-                        Endpoint = "*",
-                        Limit = 100,
-                        Period = "5s",
-                    },
-                    new RateLimitRule
-                    {
-                        Endpoint = "*",
-                        Limit = 1000,
-                        Period = "50s",
-                    },
-                };
-                rateLimitOptions.StackBlockedRequests = true;
-                rateLimitOptions.RealIpHeader = null;
-                rateLimitOptions.ClientWhitelist = new List<string>();
+                rateLimitOptions.HttpStatusCode = ServerConfiguration.IpRateLimitOptions.HttpStatusCode;
+                rateLimitOptions.ClientWhitelist = ServerConfiguration.IpRateLimitOptions.ClientWhitelist;
+                rateLimitOptions.IpWhitelist = ServerConfiguration.IpRateLimitOptions.IpWhitelist;
+                rateLimitOptions.GeneralRules = ServerConfiguration.IpRateLimitOptions.GeneralRules;
+                rateLimitOptions.StackBlockedRequests = ServerConfiguration.IpRateLimitOptions.StackBlockedRequests;
+                rateLimitOptions.RealIpHeader = ServerConfiguration.IpRateLimitOptions.RealIpHeader;
+                rateLimitOptions.ClientWhitelist = ServerConfiguration.IpRateLimitOptions.ClientWhitelist;
             });
         }
 
