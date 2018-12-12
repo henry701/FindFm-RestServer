@@ -165,21 +165,25 @@ namespace RestServer
 
             var fsBucket = new GridFSBucket<ObjectId>(mongoWrapper.Database);
 
-            var trackMap = new Dictionary<IAudioSource, (ObjectId, ObjectId)>();
+            var trackHistory = new List<(IAudioSource, ProjectedMusicianSong)>();
 
             var onTrackChangedTE = new ManualResetEvent(true);
 
             radioCastServer.OnTrackChanged += async (s, e) =>
             {
+                RadioInfoController.CurrentSong = trackHistory.Where(th => th.Item1.Equals(e.NewTrack)).Select(th => th.Item2).LastOrDefault();
+                LOGGER.Info("Now playing: {}", JsonConvert.SerializeObject(RadioInfoController.CurrentSong));
+
                 onTrackChangedTE.Set();
 
                 if (e.OldTrack == null)
                 {
                     return;
                 }
-                var oldTrackids = trackMap[e.OldTrack];
-                var oldMusicianId = oldTrackids.Item1;
-                var oldTrackId = oldTrackids.Item2;
+
+                var oldTrack = trackHistory.Where(th => th.Item1.Equals(e.OldTrack)).Select(th => th.Item2).LastOrDefault();
+                var oldMusicianId = oldTrack._id;
+                var oldTrackId = oldTrack.Song._id;
 
                 var musSongFilterBuilder = new FilterDefinitionBuilder<Models.Musician>();
 
@@ -193,9 +197,10 @@ namespace RestServer
 
                 await userCollection.UpdateOneAsync(musSongFilter, musSongUpdate);
 
-                if (trackMap.Count > 5)
+                // Remove oldest, only keep 5 in history
+                if (trackHistory.Count > 5)
                 {
-                    trackMap.Remove(e.OldTrack);
+                    trackHistory.RemoveAt(0);
                 }
             };
 
@@ -229,9 +234,9 @@ namespace RestServer
                                         {{
                                             if:
                                             {{
-                                                $in: [ ""$Song._id"", [ {trackMap.Select(kvp => $"\"{kvp.Value.Item2.ToString()}\"").DefaultIfEmpty("").Aggregate((s1, s2) => $"{s1.TrimEnd(',')},{s2.TrimEnd(',')},").TrimEnd(',')} ] ]
+                                                $in: [ ""$_id"", [ {trackHistory.Select(th => $"ObjectId(\"{th.Item2._id.ToString()}\")").DefaultIfEmpty("").Aggregate((s1, s2) => $"{s1.TrimEnd(',')},{s2.TrimEnd(',')},").TrimEnd(',')} ] ]
                                             }},
-                                            then: -100,
+                                            then: -50,
                                             else: 0
                                         }}
                                     }},
@@ -240,9 +245,9 @@ namespace RestServer
                                         {{
                                             if:
                                             {{
-                                                $in: [ ""$Song._id"", [ {trackMap.Select(kvp => $"\"{kvp.Value.Item1.ToString()}\"").DefaultIfEmpty("").Aggregate((s1, s2) => $"{s1.TrimEnd(',')},{s2.TrimEnd(',')},").TrimEnd(',')} ] ]
+                                                $in: [ ""$Song._id"", [ {trackHistory.Select(th => $"ObjectId(\"{th.Item2.Song._id.ToString()}\")").DefaultIfEmpty("").Aggregate((s1, s2) => $"{s1.TrimEnd(',')},{s2.TrimEnd(',')},").TrimEnd(',')} ] ]
                                             }},
-                                            then: -50,
+                                            then: -100,
                                             else: 0
                                         }}
                                     }}
@@ -308,10 +313,8 @@ namespace RestServer
                         onTrackChangedTE.WaitOne();
                         onTrackChangedTE.Reset();
                     }
-                    trackMap[audioSource] = (firstSong._id, firstSong.Song._id);
+                    trackHistory.Add((audioSource, firstSong));
                     radioCastServer.AddTrack(audioSource);
-                    RadioInfoController.CurrentSong = firstSong;
-                    LOGGER.Info("Now playing: {}", JsonConvert.SerializeObject(firstSong));
                 }
             });
         }
