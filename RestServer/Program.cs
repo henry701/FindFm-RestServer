@@ -25,6 +25,8 @@ using Models;
 using RestServer.Controllers.Other;
 using RestServer.Util.Extensions;
 using Newtonsoft.Json;
+using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Bson.Serialization.Serializers;
 
 namespace RestServer
 {
@@ -222,13 +224,29 @@ namespace RestServer
                     {
                         myTrackHistory = trackHistory.ToList();
                     }
+
+                    var lookupStageRandomArr = $@"
+                    {{
+                        $lookup:
+                        {{
+                            from: ""randomNumbers"",
+                            pipeline:
+                            [
+                                {{ $sample: {{ size: 2 }} }}
+                            ],
+                            as: ""RandomArr""
+                        }}
+                    }}
+                    ";
+
                     // OK Vezes totais que a música foi tocada * 0.5
                     // OK Vezes totais que a música foi tocada na rádio * -1
                     // OK Se música está presente na lista das últimas 5 tocadas, -100 
                     // OK Se o autor da música está presente na lista das últimas 5 tocadas, -50
-                    // Pontuação aleatória para cada música, entre - 10 e + 10
-                    // Número de dias desde o cadastramento da música * -1 
-                    //   Há uma chance de 5% de multiplicar a pontuação resultante por -1 (efeito nostalgia)
+                    // OK Pontuação aleatória para cada música, entre - 10 e + 10
+                    // OK Número de dias desde o cadastramento da música * -1 
+                    // OK   Há uma chance de 5% de multiplicar a pontuação resultante por -1 (efeito nostalgia)
+
                     var scoreStage = $@"
                     {{
                         $addFields:
@@ -264,6 +282,52 @@ namespace RestServer
                                             then: -100,
                                             else: 0
                                         }}
+                                    }},
+                                    {{
+                                        $add:
+                                        [ 
+                                            {{
+                                                $multiply:
+                                                [
+                                                    {{ $toDecimal: {{ $arrayElemAt: [""$RandomArr.decimal"", 0] }} }},
+                                                    21
+                                                ]
+                                            }}, 
+                                            -10
+                                        ]
+                                    }},
+                                    {{
+                                        $multiply:
+                                        [
+                                            {{
+                                                $divide:
+                                                [
+                                                    {{
+                                                        $subtract:
+                                                        [
+                                                            {{ $toDate: ""{DateTime.UtcNow.ToString("o")}"" }},
+                                                            {{ $toDate: ""$Song._id"" }}
+                                                        ]
+                                                    }},
+                                                    NumberLong(""86400000"")
+                                                ]
+                                            }},
+                                            {{
+                                                $cond:
+                                                {{
+                                                    if:
+                                                    {{
+                                                        $gt:
+                                                        [
+                                                            {{ $toDecimal: {{ $arrayElemAt: [""$RandomArr.decimal"", 1] }} }},
+                                                            NumberDecimal(""0.1"")
+                                                        ]
+                                                    }},
+                                                    then: -1,
+                                                    else: 1
+                                                }}
+                                            }}
+                                        ]
                                     }}
                                 ]
                             }}
@@ -287,9 +351,15 @@ namespace RestServer
                         Score = 1,
                     })
                     .Match(songFilter)
+                    .AppendStage<Musician, ProjectedMusicianSong, ProjectedMusicianSong>(lookupStageRandomArr)
                     .AppendStage<Musician, ProjectedMusicianSong, ProjectedMusicianSong>(scoreStage)
                     .Sort(songSort)
                     .Limit(1);
+
+                    if(LOGGER.IsDebugEnabled)
+                    {
+                        LOGGER.Debug("Pipeline generated MongoDB query for song: {}", pipeline.ToString());
+                    }
 
                     var findTask = userCollection.AggregateAsync(pipeline, new AggregateOptions
                     {
@@ -447,7 +517,7 @@ namespace RestServer
         {
             public ObjectId _id { get; set; }
             public Song Song { get; set; }
-            public double Score { get; set; }
+            public decimal Score { get; set; }
         }
     }
 }

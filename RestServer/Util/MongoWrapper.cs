@@ -1,8 +1,13 @@
 ﻿using Models;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson.Serialization.Conventions;
+using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using RestServer.Util.Extensions;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -21,8 +26,19 @@ namespace RestServer.Util
         public MongoWrapper(string connectionString, string databaseName)
         {
             Task.WaitAll(RegisterConventions());
+
+            var decimalSerializer = new DecimalSerializer
+            (
+                BsonType.Decimal128,
+                new MongoDB.Bson.Serialization.Options.RepresentationConverter(true, true)
+            );
+            BsonSerializer.RegisterSerializer(typeof(decimal), decimalSerializer);
+            BsonSerializer.RegisterSerializer(typeof(decimal?), new NullableSerializer<decimal>(decimalSerializer));
+
             MongoClient = new MongoClient(connectionString);
+
             Database = MongoClient.GetDatabase(databaseName);
+
             Task.WaitAll(CreateCollections());
             Task.WaitAll(CreateIndexes());
         }
@@ -42,6 +58,9 @@ namespace RestServer.Util
         private async Task CreateCollections()
         {
             var collectionNames = (await Database.ListCollectionNamesAsync()).ToList();
+
+            var randomCollectionTask = CreateRandomCollection(collectionNames);
+
             typeof(Musician).Assembly.GetExportedTypes().Where(mdl =>
                 !collectionNames.Contains(mdl.Name) &&
                 mdl.HasAttribute<RootEntityAttribute>()
@@ -49,6 +68,40 @@ namespace RestServer.Util
             {
                 await Database.CreateCollectionAsync(tp.Name);
             });
+
+            await randomCollectionTask;
+        }
+
+        private async Task CreateRandomCollection(IList<string> collectionNames)
+        {
+            if(collectionNames.Contains("randomNumbers"))
+            {
+                return;
+            }
+
+            await Database.CreateCollectionAsync("randomNumbers");
+            var randomCollection = Database.GetCollection<EncapDecimal>("randomNumbers");
+
+            var tasks = new LinkedList<Task>();
+            for (decimal d = 0.0M; d <= 1.0M; d += 0.0001M)
+            {
+                tasks.AddLast
+                (
+                    randomCollection.InsertOneAsync
+                    (
+                        new EncapDecimal
+                        {
+                            Decimal = d,
+                        }
+                    )
+                );
+            }
+            Task.WaitAll(tasks.ToArray());
+        }
+
+        public class EncapDecimal
+        {
+            public decimal Decimal { get; set; }
         }
 
         private async Task CreateIndexes()
